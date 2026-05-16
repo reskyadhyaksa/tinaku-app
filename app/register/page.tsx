@@ -159,7 +159,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-pink-50 flex items-center justify-center p-4 md:p-8 font-sans">
-      <div className="bg-white w-full max-w-4xl rounded-3xl shadow-xl p-6 md:p-10 border border-pink-100">
+      <div className="bg-white w-full max-w-6xl rounded-[40px] shadow-2xl p-6 md:p-12 lg:p-16 border border-pink-100">
         
         <div className="flex flex-col items-center mb-10 text-center">
           <div className="h-16 w-16 bg-pink-100 rounded-2xl flex items-center justify-center mb-4">

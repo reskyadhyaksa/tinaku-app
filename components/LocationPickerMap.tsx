@@ -75,9 +75,9 @@ export default function LocationPickerMap({ lat, lng, onChange }: LocationPicker
     return <div className="h-full w-full bg-gray-100 animate-pulse rounded-xl" />;
   }
 
-  // Ensure coordinates are valid numbers, fallback to Jakarta
-  const safeLat = !isNaN(Number(lat)) && Number(lat) !== 0 ? Number(lat) : -6.205000;
-  const safeLng = !isNaN(Number(lng)) && Number(lng) !== 0 ? Number(lng) : 106.820000;
+  // Ensure coordinates are valid numbers, fallback to Palu
+  const safeLat = !isNaN(Number(lat)) && Number(lat) !== 0 ? Number(lat) : -0.888612;
+  const safeLng = !isNaN(Number(lng)) && Number(lng) !== 0 ? Number(lng) : 119.844387;
   const initialCenter: [number, number] = [safeLat, safeLng];
 
   return (

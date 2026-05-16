@@ -99,10 +99,10 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Link 
-                href="/register" 
+                href={user ? (user.role === 'bidan' ? '/dashboard/bidan' : '/dashboard/bumil') : '/register'} 
                 className="group flex items-center justify-center gap-3 bg-gray-900 text-white px-8 py-5 rounded-2xl font-bold shadow-2xl hover:bg-pink-600 transition-all"
               >
-                Mulai Pendaftaran <ArrowRight className="group-hover:translate-x-1 transition-transform" />
+                {user ? 'Buka Dashboard Saya' : 'Mulai Pendaftaran'} <ArrowRight className="group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link 
                 href="#fitur" 
