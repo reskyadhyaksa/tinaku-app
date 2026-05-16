@@ -36,14 +36,19 @@ const getStatusColor = (status: string) => {
 
 export default function DashboardMap({ data }: { data: any[] }) {
   const [filter, setFilter] = useState<'ALL' | 'KRR' | 'KRT' | 'KRST'>('ALL');
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     L.Icon.Default.imagePath = 'leaflet/dist/images/';
+    return () => setIsMounted(false);
   }, []);
 
   const filteredData = filter === 'ALL' 
     ? data 
     : data.filter(b => b.riskStatus === filter);
+
+  if (!isMounted) return <div className="h-[450px] w-full bg-gray-100 animate-pulse rounded-2xl" />;
 
   return (
     <div className="h-[450px] w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm relative z-0 group">

@@ -176,20 +176,23 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6 md:space-y-10">
+        <form onSubmit={handleSubmit} className="space-y-8 md:space-y-12">
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16">
             
-            <div className="space-y-8">
+            <div className="space-y-10">
+              {/* Section 01: Akses Akun */}
               <section className="space-y-6">
-                <h3 className="text-[10px] font-black text-pink-500 uppercase tracking-[0.3em] border-l-4 border-pink-500 pl-4 py-1">01. Akses Akun</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                <div className="flex items-center gap-3 border-l-4 border-pink-500 pl-4 py-1">
+                   <h3 className="text-xs md:text-sm font-black text-gray-900 uppercase tracking-widest">01. Akses Akun</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700 ml-1">Username</label>
-                    <input type="text" name="username" value={formData.username} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-[20px] border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all" placeholder="Username" />
+                    <label className="text-xs font-bold text-gray-500 ml-1">Username</label>
+                    <input type="text" name="username" value={formData.username} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="Buat username" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700 ml-1">Password</label>
+                    <label className="text-xs font-bold text-gray-500 ml-1">Password</label>
                     <div className="relative">
                       <input 
                         type={showPassword ? 'text' : 'password'} 
@@ -197,8 +200,8 @@ export default function RegisterPage() {
                         value={formData.password} 
                         onChange={handleInputChange} 
                         required 
-                        className="w-full px-5 py-4 pr-12 rounded-[20px] border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all" 
-                        placeholder="Min. 6 char" 
+                        className="w-full px-5 py-4 pr-12 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" 
+                        placeholder="Min. 6 Karakter" 
                       />
                       <button
                         type="button"
@@ -212,82 +215,71 @@ export default function RegisterPage() {
                 </div>
               </section>
 
+              {/* Section 02: Data Personal */}
               <section className="space-y-6">
-                <h3 className="text-[10px] font-black text-pink-500 uppercase tracking-[0.3em] border-l-4 border-pink-500 pl-4 py-1">02. Data Personal</h3>
-                <div className="space-y-4 md:space-y-6">
+                <div className="flex items-center gap-3 border-l-4 border-pink-500 pl-4 py-1">
+                   <h3 className="text-xs md:text-sm font-black text-gray-900 uppercase tracking-widest">02. Data Personal</h3>
+                </div>
+                <div className="space-y-5">
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700 ml-1">Nama Lengkap</label>
-                    <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-[20px] border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all" placeholder="Sesuai KTP" />
+                    <label className="text-xs font-bold text-gray-500 ml-1">Nama Lengkap</label>
+                    <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="Sesuai KTP" />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-700 ml-1">NIK (16 Digit)</label>
-                      <input type="text" name="nik" value={formData.nik} onChange={handleInputChange} required maxLength={16} className="w-full px-5 py-4 rounded-[20px] border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all" placeholder="Angka Saja" />
+                      <label className="text-xs font-bold text-gray-500 ml-1">NIK (16 Digit)</label>
+                      <input type="text" name="nik" value={formData.nik} onChange={handleInputChange} required maxLength={16} className="w-full px-5 py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="16 digit angka" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-700 ml-1">Umur</label>
-                      <input type="number" name="age" value={formData.age} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-[20px] border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all" placeholder="Tahun" />
+                      <label className="text-xs font-bold text-gray-500 ml-1">Umur</label>
+                      <input type="number" name="age" value={formData.age} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="Tahun" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700 ml-1">Kelurahan</label>
-                    <input type="text" name="kelurahan" value={formData.kelurahan} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-[20px] border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all" placeholder="Kelurahan Domisili" />
+                    <label className="text-xs font-bold text-gray-500 ml-1">Kelurahan</label>
+                    <input type="text" name="kelurahan" value={formData.kelurahan} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="Kelurahan domisili" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-700 ml-1">Alamat Lengkap</label>
-                    <textarea name="address" value={formData.address} onChange={handleInputChange} required rows={2} className="w-full px-5 py-4 rounded-[20px] border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all resize-none" placeholder="RT/RW, No. Rumah, dll"></textarea>
+                    <label className="text-xs font-bold text-gray-500 ml-1">Alamat Lengkap</label>
+                    <textarea name="address" value={formData.address} onChange={handleInputChange} required rows={3} className="w-full px-5 py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium resize-none" placeholder="RT/RW, Nama Jalan, No. Rumah"></textarea>
                   </div>
                 </div>
               </section>
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-10">
+              {/* Section 03: Lokasi Geografis */}
               <section className="space-y-6">
-                <h3 className="text-[10px] font-black text-pink-500 uppercase tracking-[0.3em] border-l-4 border-pink-500 pl-4 py-1">03. Lokasi Geografis</h3>
+                <div className="flex items-center gap-3 border-l-4 border-pink-500 pl-4 py-1">
+                   <h3 className="text-xs md:text-sm font-black text-gray-900 uppercase tracking-widest">03. Lokasi Geografis</h3>
+                </div>
                 
                 <div className="flex flex-col gap-6">
-                  <button type="button" onClick={getCurrentLocation} className="w-full bg-pink-50 text-pink-500 font-black py-4 rounded-[20px] text-xs hover:bg-pink-100 transition-all border border-pink-100 flex items-center justify-center gap-3 shadow-sm">
-                    <LocateFixed className="w-5 h-5" /> Deteksi Lokasi Saya (GPS)
+                  <button type="button" onClick={getCurrentLocation} className="w-full bg-white text-pink-500 font-black py-4 rounded-2xl text-xs hover:bg-pink-50 transition-all border-2 border-pink-100 flex items-center justify-center gap-3 shadow-sm active:scale-[0.98]">
+                    <LocateFixed className="w-5 h-5" /> Deteksi Lokasi GPS Saya
                   </button>
 
-                  <div className="h-[250px] md:h-[350px] rounded-[32px] overflow-hidden border-4 border-white shadow-2xl relative bg-gray-100 flex items-center justify-center">
-                    {!showMap && (
-                      <div className="flex flex-col items-center gap-4 animate-pulse">
-                        <div className="h-10 w-10 border-4 border-pink-100 border-t-pink-500 rounded-full animate-spin"></div>
-                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Memuat Peta...</p>
-                      </div>
-                    )}
-                    {showMap && (
-                      <div className="absolute inset-0 animate-in fade-in zoom-in-95 duration-700">
-                        <LocationPickerMap 
-                          key="register-full-map-instance"
-                          lat={parseFloat(formData.lat) || -6.205} 
-                          lng={parseFloat(formData.lng) || 106.82} 
-                          onChange={(lat, lng) => setFormData(prev => ({ ...prev, lat: lat.toFixed(6), lng: lng.toFixed(6) }))} 
-                        />
-                      </div>
-                    )}
+                  <div className="h-[280px] md:h-[400px] rounded-[32px] overflow-hidden border-4 border-white shadow-xl relative bg-gray-50">
+                    <LocationPickerMap 
+                      lat={parseFloat(formData.lat) || 0} 
+                      lng={parseFloat(formData.lng) || 0} 
+                      onChange={(lat, lng) => setFormData(prev => ({ ...prev, lat: lat.toFixed(6), lng: lng.toFixed(6) }))} 
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white p-4 rounded-[20px] border border-gray-100 shadow-sm">
-                      <span className="text-[10px] font-black text-gray-400 block uppercase tracking-tighter mb-1">Latitude</span>
-                      <span className="text-xs font-mono font-black text-pink-500">{formData.lat || '0.000000'}</span>
+                    <div className="bg-gray-50 p-4 rounded-2xl text-gray-700 border border-gray-100">
+                      <span className="text-[10px] font-black text-gray-400 block uppercase tracking-wider mb-1">Latitude</span>
+                      <span className="text-xs font-mono font-bold text-gray-600">{formData.lat || '-'}</span>
                     </div>
-                    <div className="bg-white p-4 rounded-[20px] border border-gray-100 shadow-sm">
-                      <span className="text-[10px] font-black text-gray-400 block uppercase tracking-tighter mb-1">Longitude</span>
-                      <span className="text-xs font-mono font-black text-pink-500">{formData.lng || '0.000000'}</span>
+                    <div className="bg-gray-50 p-4 rounded-2xl text-gray-700 border border-gray-100">
+                      <span className="text-[10px] font-black text-gray-400 block uppercase tracking-wider mb-1">Longitude</span>
+                      <span className="text-xs font-mono font-bold text-gray-600">{formData.lng || '-'}</span>
                     </div>
-                  </div>
-                  
-                  <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3">
-                     <MapIcon className="w-5 h-5 text-blue-500 shrink-0" />
-                     <p className="text-[10px] font-bold text-blue-600 leading-relaxed">Geser penanda di atas untuk menentukan posisi rumah Ibu dengan lebih akurat.</p>
                   </div>
                 </div>
               </section>
             </div>
-
           </div>
 
           <div className="pt-10 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-8">

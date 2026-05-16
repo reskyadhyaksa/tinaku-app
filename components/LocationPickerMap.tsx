@@ -65,30 +65,38 @@ function LocationMarker({ lat, lng, onChange }: LocationPickerProps) {
 
 export default function LocationPickerMap({ lat, lng, onChange }: LocationPickerProps) {
   const [isMounted, setIsMounted] = useState(false);
-  const initialCenter: [number, number] = lat && lng ? [lat, lng] : [-6.205000, 106.820000];
 
   useEffect(() => {
     setIsMounted(true);
+    return () => setIsMounted(false);
   }, []);
 
-  if (!isMounted) return <div className="h-[300px] w-full bg-gray-100 animate-pulse rounded-xl" />;
+  if (!isMounted) {
+    return <div className="h-full w-full bg-gray-100 animate-pulse rounded-xl" />;
+  }
+
+  // Ensure coordinates are valid numbers, fallback to Jakarta
+  const safeLat = !isNaN(Number(lat)) && Number(lat) !== 0 ? Number(lat) : -6.205000;
+  const safeLng = !isNaN(Number(lng)) && Number(lng) !== 0 ? Number(lng) : 106.820000;
+  const initialCenter: [number, number] = [safeLat, safeLng];
 
   return (
-    <div className="h-[300px] w-full rounded-xl overflow-hidden border border-gray-200 mt-4 relative z-0">
+    <div className="h-full w-full relative z-0">
       <MapContainer 
-        key="unique-map-instance" // Stable key to prevent rapid re-mounting
+        key={`map-${safeLat}-${safeLng}`} // Unique key to force re-render if initial center changes significantly
         center={initialCenter} 
-        zoom={13} 
+        zoom={15} 
+        scrollWheelZoom={true}
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <LocationMarker lat={lat} lng={lng} onChange={onChange} />
+        <LocationMarker lat={safeLat} lng={safeLng} onChange={onChange} />
       </MapContainer>
-      <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-[10px] font-bold text-gray-500 z-[1000] shadow-sm border border-gray-100">
-        Klik pada peta untuk menentukan lokasi
+      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl text-[10px] font-black text-pink-500 z-[1000] shadow-xl border border-pink-100 uppercase tracking-widest">
+        Klik Peta Untuk Geser Lokasi
       </div>
     </div>
   );
