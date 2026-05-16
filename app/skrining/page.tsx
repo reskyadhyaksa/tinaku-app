@@ -1,26 +1,20 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  User, 
-  MapPin, 
   ClipboardCheck, 
   Save, 
-  LocateFixed, 
   ArrowLeft,
   AlertCircle,
-  Map as MapIcon,
-  MousePointer2
+  Users,
+  Search
 } from 'lucide-react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
+import { useAuth } from '@/context/AuthContext';
+import { bumilApi } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
-const LocationPickerMap = dynamic(() => import('@/components/LocationPickerMap'), {
-  ssr: false,
-  loading: () => <div className="h-[300px] w-full bg-gray-100 animate-pulse rounded-xl mt-4" />
-});
-
-// 20 Faktor Risiko KSPR (Kartu Poedji Rochjati)
 const ksprQuestions = [
   { id: 1, text: "Umur Terlalu Muda (≤ 20 tahun)", score: 4 },
   { id: 2, text: "Umur Terlalu Tua (≥ 35 tahun)", score: 4 },
@@ -44,253 +38,289 @@ const ksprQuestions = [
   { id: 20, text: "Preeklampsia Berat / Eklampsia (Kejang)", score: 8 },
 ];
 
-export default function SkriningPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    nik: '',
-    age: '',
-    address: '',
-    kelurahan: '',
-    lat: '',
-    lng: ''
-  });
-
+export default function SkriningBidanPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [bumilList, setBumilList] = useState<any[]>([]);
+  const [selectedBumilId, setSelectedBumilId] = useState('');
   const [responses, setResponses] = useState<Record<number, boolean>>({});
-  const [isLocating, setIsLocating] = useState(false);
-  const [showMap, setShowMap] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+  
+  // State untuk Search & Pagination
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  useEffect(() => {
+    if (!user || user.role !== 'bidan') {
+      router.push('/login');
+    } else {
+      fetchBumil();
+    }
+  }, [user, router]);
+
+  const fetchBumil = async () => {
+    try {
+      const res = await bumilApi.getAll();
+      setBumilList(res.data);
+    } catch (error) {
+      console.error('Failed to fetch bumil');
+    } finally {
+      setIsFetching(false);
+    }
   };
+
+  // Logika Filter & Pagination
+  const filteredBumil = bumilList.filter(b => 
+    (b.name?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+    (b.nik?.includes(searchQuery) || false)
+  );
+
+  const totalPages = Math.ceil(filteredBumil.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredBumil.slice(indexOfFirstItem, indexOfLastItem);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset ke halaman 1 saat mencari
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (selectedBumilId) {
+      const selectedBumil = bumilList.find(b => b.id.toString() === selectedBumilId);
+      if (selectedBumil && selectedBumil.ksprResponses) {
+        // Jika ada data ksprResponses sebelumnya, gunakan itu
+        setResponses(selectedBumil.ksprResponses);
+      } else {
+        // Jika tidak ada, kosongkan
+        setResponses({});
+      }
+    } else {
+      setResponses({});
+    }
+  }, [selectedBumilId, bumilList]);
 
   const handleKSPRChange = (id: number) => {
     setResponses(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const getCurrentLocation = () => {
-    setIsLocating(true);
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setFormData(prev => ({
-            ...prev,
-            lat: position.coords.latitude.toFixed(6),
-            lng: position.coords.longitude.toFixed(6)
-          }));
-          setIsLocating(false);
-        },
-        (error) => {
-          alert("Gagal mengambil lokasi: " + error.message);
-          setIsLocating(false);
-        }
-      );
-    } else {
-      alert("Geolocation tidak didukung di browser ini.");
-      setIsLocating(false);
-    }
-  };
-
   const calculateTotalScore = () => {
-    let total = 2; // Skor Awal Ibu Hamil
+    let total = 2;
     ksprQuestions.forEach(q => {
       if (responses[q.id]) total += q.score;
     });
     return total;
   };
 
+  const totalScore = calculateTotalScore();
+
   const getRiskStatus = (score: number) => {
-    if (score === 2) return { label: 'KRR (Risiko Rendah)', color: 'text-green-600', bg: 'bg-green-50' };
-    if (score >= 6 && score <= 10) return { label: 'KRT (Risiko Tinggi)', color: 'text-yellow-600', bg: 'bg-yellow-50' };
-    return { label: 'KRST (Risiko Sangat Tinggi)', color: 'text-red-600', bg: 'bg-red-50' };
+    if (score === 2) return 'KRR';
+    if (score >= 6 && score <= 10) return 'KRT';
+    return 'KRST';
   };
 
-  const totalScore = calculateTotalScore();
-  const riskStatus = getRiskStatus(totalScore);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBumilId) {
+      toast.error('Pilih Ibu Hamil terlebih dahulu!');
+      return;
+    }
+
+    setIsLoading(true);
+    const riskStatus = getRiskStatus(totalScore);
+
+    try {
+      const selectedBumil = bumilList.find(b => b.id.toString() === selectedBumilId);
+      await bumilApi.update(selectedBumilId, {
+        ...selectedBumil,
+        riskStatus,
+        ksprScore: totalScore,
+        ksprResponses: responses // Simpan seluruh jawaban kuesioner
+      });
+      toast.success('Skrining berhasil disimpan!');
+      router.push('/');
+    } catch (error) {
+      toast.error('Gagal menyimpan hasil skrining');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isFetching) return <div className="min-h-screen bg-pink-50 flex items-center justify-center font-bold text-pink-500">Memuat Data...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50/50 p-6 font-sans">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-pink-50 p-4 md:p-6 font-sans">
+      <div className="max-w-4xl mx-auto space-y-6">
         
-        {/* Back Button & Title */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 md:px-8 md:py-6 rounded-3xl shadow-sm border border-pink-50">
           <div className="flex items-center gap-4">
-            <Link href="/" className="h-10 w-10 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm">
+            <Link href="/" className="h-10 w-10 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm shrink-0">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </Link>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Pendaftaran & Skrining</h1>
-              <p className="text-sm text-gray-500">Input data baru pemeriksaan ibu hamil</p>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">Skrining Faktor Risiko</h1>
+              <p className="text-xs md:text-sm text-gray-500">Kuesioner KSPR Digital</p>
             </div>
           </div>
           
-          <div className={`px-4 py-2 rounded-xl border flex items-center gap-3 ${riskStatus.bg}`}>
+          <div className="flex items-center gap-4 bg-pink-50/50 p-3 rounded-2xl border border-pink-100 self-end md:self-auto">
             <div className="text-right">
-              <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Skor KSPR</p>
-              <p className={`text-xl font-black ${riskStatus.color}`}>{totalScore}</p>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400">Skor</p>
+              <p className="text-2xl font-black text-pink-500 leading-none">{totalScore}</p>
             </div>
-            <div className="w-[1px] h-8 bg-gray-200"></div>
-            <p className={`font-bold text-sm ${riskStatus.color}`}>{riskStatus.label}</p>
+            <div className="w-[1px] h-8 bg-pink-100"></div>
+            <div className={`font-bold px-3 py-1.5 rounded-xl text-xs md:text-sm ${
+              totalScore === 2 ? 'bg-green-500 text-white shadow-sm shadow-green-100' :
+              totalScore <= 10 ? 'bg-yellow-500 text-white shadow-sm shadow-yellow-100' : 'bg-red-500 text-white shadow-sm shadow-red-100'
+            }`}>
+              {getRiskStatus(totalScore)}
+            </div>
           </div>
         </div>
 
-        <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           
-          {/* Section 1: Data Personal */}
-          <section className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center">
-                <User className="text-blue-600 w-5 h-5" />
-              </div>
-              <h2 className="text-lg font-bold text-gray-900">Data Personal</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Nama Lengkap</label>
-                <input 
-                  type="text" name="name" value={formData.name} onChange={handleInputChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  placeholder="Contoh: Siti Aminah"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">NIK (Nomor Induk Kependudukan)</label>
-                <input 
-                  type="text" name="nik" value={formData.nik} onChange={handleInputChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  placeholder="16 digit nomor NIK"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Umur (Tahun)</label>
-                <input 
-                  type="number" name="age" value={formData.age} onChange={handleInputChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  placeholder="Contoh: 28"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Kelurahan</label>
-                <input 
-                  type="text" name="kelurahan" value={formData.kelurahan} onChange={handleInputChange}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  placeholder="Masukkan nama kelurahan"
-                />
-              </div>
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Alamat Lengkap</label>
-                <textarea 
-                  name="address" value={formData.address} onChange={handleInputChange} rows={2}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                  placeholder="Jl. Merdeka No. 123..."
-                />
-              </div>
-            </div>
-
-            <div className="mt-8 pt-8 border-t border-gray-50">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2 text-gray-700 font-semibold">
-                  <MapPin className="w-5 h-5 text-red-500" />
-                  <span>Titik Koordinat Rumah</span>
+          {/* Section: Pilih Bumil */}
+          <section className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-pink-50">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-pink-50 rounded-xl flex items-center justify-center text-pink-500 shrink-0">
+                  <Users className="w-5 h-5" />
                 </div>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => setShowMap(!showMap)}
-                    className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-lg transition-colors ${
-                      showMap ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                <h2 className="text-lg font-bold text-gray-900">Pilih Ibu Hamil</h2>
+              </div>
+              
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input 
+                  type="text" 
+                  placeholder="Cari Nama / NIK..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2 mb-6">
+              {currentItems.length > 0 ? (
+                currentItems.map((bumil) => (
+                  <div 
+                    key={bumil.id}
+                    onClick={() => setSelectedBumilId(bumil.id.toString())}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-center justify-between group ${
+                      selectedBumilId === bumil.id.toString() 
+                        ? 'bg-pink-50 border-pink-200 shadow-sm shadow-pink-100' 
+                        : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50/50'
                     }`}
                   >
-                    <MapIcon className="w-4 h-4" />
-                    {showMap ? 'Tutup Peta' : 'Pilih di Peta'}
+                    <div className="flex items-center gap-4">
+                      <div className={`h-10 w-10 rounded-full flex items-center justify-center font-bold text-xs ${
+                        selectedBumilId === bumil.id.toString() ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-400 group-hover:bg-gray-200'
+                      }`}>
+                        {bumil.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className={`font-bold text-sm ${selectedBumilId === bumil.id.toString() ? 'text-pink-900' : 'text-gray-900'}`}>
+                          {bumil.name}
+                        </h4>
+                        <p className="text-xs text-gray-400 font-medium">NIK: {bumil.nik}</p>
+                      </div>
+                    </div>
+                    {selectedBumilId === bumil.id.toString() && (
+                      <div className="h-6 w-6 bg-pink-500 rounded-full flex items-center justify-center animate-in zoom-in duration-200">
+                        <div className="h-2 w-2 bg-white rounded-full"></div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-10 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                  <p className="text-sm text-gray-400 font-medium italic">Ibu hamil tidak ditemukan</p>
+                </div>
+              )}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                <p className="text-xs text-gray-400 font-medium">
+                  Halaman <span className="text-gray-900">{currentPage}</span> dari {totalPages}
+                </p>
+                <div className="flex gap-2">
+                  <button 
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => prev - 1)}
+                    className="px-4 py-2 text-xs font-bold rounded-lg border border-gray-100 disabled:opacity-30 hover:bg-gray-50 transition-colors"
+                  >
+                    Sebelumnya
                   </button>
                   <button 
-                    onClick={getCurrentLocation}
-                    disabled={isLocating}
-                    className="flex items-center gap-2 text-sm font-bold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors"
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    className="px-4 py-2 text-xs font-bold rounded-lg bg-gray-900 text-white disabled:opacity-30 hover:bg-gray-800 transition-colors"
                   >
-                    <LocateFixed className={`w-4 h-4 ${isLocating ? 'animate-spin' : ''}`} />
-                    {isLocating ? 'Mencari Lokasi...' : 'Lokasi Saat Ini'}
+                    Berikutnya
                   </button>
                 </div>
               </div>
-
-              {showMap && (
-                <LocationPickerMap 
-                  lat={parseFloat(formData.lat) || 0} 
-                  lng={parseFloat(formData.lng) || 0} 
-                  onChange={(lat, lng) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      lat: lat.toFixed(6),
-                      lng: lng.toFixed(6)
-                    }));
-                  }}
-                />
-              )}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 px-4 py-3 rounded-xl border border-gray-100 text-sm">
-                  <span className="text-gray-400 block text-[10px] uppercase font-bold">Latitude</span>
-                  <span className="font-mono text-gray-700">{formData.lat || '-'}</span>
-                </div>
-                <div className="bg-gray-50 px-4 py-3 rounded-xl border border-gray-100 text-sm">
-                  <span className="text-gray-400 block text-[10px] uppercase font-bold">Longitude</span>
-                  <span className="font-mono text-gray-700">{formData.lng || '-'}</span>
-                </div>
-              </div>
-            </div>
+            )}
           </section>
 
-          {/* Section 2: Kuesioner KSPR */}
-          <section className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
+          {/* Section: Kuesioner KSPR */}
+          <section className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-rose-50">
             <div className="flex items-center gap-3 mb-6">
-              <div className="h-10 w-10 bg-purple-50 rounded-xl flex items-center justify-center">
-                <ClipboardCheck className="text-purple-600 w-5 h-5" />
+              <div className="h-10 w-10 bg-rose-50 rounded-xl flex items-center justify-center text-rose-500 shrink-0">
+                <ClipboardCheck className="w-5 h-5" />
               </div>
-              <h2 className="text-lg font-bold text-gray-900">Skrining KSPR Digital</h2>
+              <h2 className="text-lg font-bold text-gray-900">Kuesioner KSPR</h2>
             </div>
 
-            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-8 flex gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
-              <p className="text-sm text-amber-800 leading-relaxed">
-                Pilih <strong>"Ya"</strong> jika kondisi di bawah ini ditemukan pada ibu hamil. Skor akan dihitung otomatis sesuai bobot Kartu Poedji Rochjati.
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 md:p-5 mb-8 flex gap-4">
+              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-xs md:text-sm text-amber-800 leading-relaxed font-medium">
+                Pilih <strong className="text-amber-900">"Ya"</strong> jika kondisi di bawah ini ditemukan pada ibu hamil.
               </p>
             </div>
 
-            <div className="space-y-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {ksprQuestions.map((q) => (
                 <div 
                   key={q.id} 
-                  className={`flex items-center justify-between p-4 rounded-xl transition-colors hover:bg-gray-50 cursor-pointer group ${responses[q.id] ? 'bg-purple-50/50' : ''}`}
+                  className={`flex items-center justify-between p-4 md:p-5 rounded-2xl transition-all cursor-pointer border ${
+                    responses[q.id] 
+                      ? 'bg-rose-50 border-rose-200 shadow-sm shadow-rose-100' 
+                      : 'bg-white border-gray-100 hover:border-gray-200'
+                  }`}
                   onClick={() => handleKSPRChange(q.id)}
                 >
                   <div className="flex items-center gap-4">
-                    <span className="text-xs font-bold text-gray-300 group-hover:text-purple-300 transition-colors w-4">{q.id}.</span>
-                    <span className={`text-sm font-medium ${responses[q.id] ? 'text-purple-900' : 'text-gray-700'}`}>
+                    <span className="text-[10px] font-black text-gray-300 w-5 uppercase">{q.id.toString().padStart(2, '0')}</span>
+                    <span className={`text-sm font-bold leading-tight ${responses[q.id] ? 'text-rose-900' : 'text-gray-600'}`}>
                       {q.text}
                     </span>
                   </div>
-                  
-                  <div className={`w-12 h-6 rounded-full relative transition-colors ${responses[q.id] ? 'bg-purple-600' : 'bg-gray-200'}`}>
-                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${responses[q.id] ? 'left-7' : 'left-1'}`}></div>
+                  <div className={`w-10 h-6 rounded-full relative transition-all shrink-0 ${responses[q.id] ? 'bg-rose-500' : 'bg-gray-200'}`}>
+                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${responses[q.id] ? 'left-5 shadow-sm' : 'left-1'}`}></div>
                   </div>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* Action Buttons */}
-          <div className="flex gap-4 pt-4 pb-12">
-            <button className="flex-1 bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
-              <Save className="w-5 h-5" />
-              Simpan Data & Skrining
-            </button>
-            <button className="px-8 bg-white border border-gray-200 text-gray-600 font-bold py-4 rounded-2xl hover:bg-gray-50 transition-all">
-              Batal
-            </button>
-          </div>
-
-        </div>
+          <button
+            type="submit"
+            disabled={isLoading || !selectedBumilId}
+            className="w-full bg-pink-500 text-white font-bold py-5 rounded-2xl shadow-lg shadow-pink-100 hover:bg-pink-600 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {isLoading ? 'Menyimpan...' : 'Simpan Hasil Skrining'}
+            <Save className="w-5 h-5" />
+          </button>
+        </form>
       </div>
     </div>
   );

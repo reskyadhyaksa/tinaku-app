@@ -48,17 +48,35 @@ function LocationMarker({ lat, lng, onChange }: LocationPickerProps) {
     },
   });
 
+  // Auto focus when lat/lng props change (e.g. from GPS button)
+  useEffect(() => {
+    if (lat !== 0 && lng !== 0) {
+      map.flyTo([lat, lng], 16, {
+        animate: true,
+        duration: 1.5
+      });
+    }
+  }, [lat, lng, map]);
+
   return lat !== 0 ? (
     <Marker position={[lat, lng]} icon={customIcon} />
   ) : null;
 }
 
 export default function LocationPickerMap({ lat, lng, onChange }: LocationPickerProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const initialCenter: [number, number] = lat && lng ? [lat, lng] : [-6.205000, 106.820000];
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) return <div className="h-[300px] w-full bg-gray-100 animate-pulse rounded-xl" />;
 
   return (
     <div className="h-[300px] w-full rounded-xl overflow-hidden border border-gray-200 mt-4 relative z-0">
       <MapContainer 
+        key="unique-map-instance" // Stable key to prevent rapid re-mounting
         center={initialCenter} 
         zoom={13} 
         style={{ height: '100%', width: '100%' }}

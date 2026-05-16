@@ -11,6 +11,6 @@ const DashboardMap = dynamic(() => import('./DashboardMap'), {
   )
 });
 
-export default function MapWrapper() {
-  return <DashboardMap />;
+export default function MapWrapper({ data }: { data: any[] }) {
+  return <DashboardMap data={data} />;
 }
