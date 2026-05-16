@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { 
   Heart, 
@@ -15,18 +15,21 @@ import {
   ArrowRight,
   Info,
   AlertCircle,
-  LogOut
+  LogOut,
+  Menu,
+  X
 } from 'lucide-react';
 
 export default function LandingPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-white font-sans selection:bg-pink-100 selection:text-pink-600">
       
       {/* Navigation Bar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100">
+      <nav className="fixed top-0 left-0 right-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-10 w-10 bg-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-pink-200">
@@ -35,7 +38,7 @@ export default function LandingPage() {
             <span className="text-2xl font-black text-gray-900 tracking-tighter">TINAKU</span>
           </div>
           
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden lg:flex items-center gap-8">
             <Link href="#fitur" className="text-sm font-bold text-gray-500 hover:text-pink-500 transition-colors">Fitur</Link>
             <Link href="/edukasi" className="text-sm font-bold text-gray-500 hover:text-pink-500 transition-colors">Edukasi KIA</Link>
             <Link href="#tentang" className="text-sm font-bold text-gray-500 hover:text-pink-500 transition-colors">Tentang Kami</Link>
@@ -50,36 +53,91 @@ export default function LandingPage() {
                 </div>
                 <Link 
                   href={user.role === 'bidan' ? '/dashboard/bidan' : '/dashboard/bumil'} 
-                  className="px-6 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-full shadow-lg hover:bg-pink-600 transition-all"
+                  className="hidden sm:flex px-6 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-full shadow-lg hover:bg-pink-600 transition-all"
                 >
                   Dashboard
                 </Link>
                 <button 
                   onClick={logout}
-                  className="p-2.5 bg-red-50 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-sm shadow-red-100"
+                  className="hidden sm:flex p-2.5 bg-red-50 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-sm shadow-red-100"
                   title="Keluar"
                 >
                   <LogOut className="w-5 h-5" />
                 </button>
               </div>
             ) : (
-              <>
+              <div className="hidden sm:flex items-center gap-3">
                 <Link 
                   href="/login" 
-                  className="px-6 py-2.5 text-sm font-bold text-gray-700 hover:text-pink-500 transition-all"
+                  className="px-6 py-2.5 text-gray-900 text-sm font-bold rounded-full hover:bg-gray-50 transition-all"
                 >
                   Masuk
                 </Link>
                 <Link 
                   href="/register" 
-                  className="px-6 py-2.5 bg-pink-500 text-white text-sm font-bold rounded-full shadow-lg shadow-pink-200 hover:bg-pink-600 hover:-translate-y-0.5 transition-all"
+                  className="px-6 py-2.5 bg-pink-500 text-white text-sm font-bold rounded-full shadow-lg shadow-pink-100 hover:bg-pink-600 transition-all"
                 >
-                  Daftar Sekarang
+                  Daftar
                 </Link>
-              </>
+              </div>
             )}
+
+            {/* Mobile Menu Toggle */}
+            <button 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="lg:hidden p-2.5 bg-gray-50 text-gray-900 rounded-xl hover:bg-pink-50 hover:text-pink-500 transition-all"
+            >
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Dropdown Menu */}
+        {isMenuOpen && (
+          <div className="lg:hidden bg-white border-t border-gray-100 animate-in slide-in-from-top duration-300">
+            <div className="p-6 space-y-6">
+              <div className="flex flex-col gap-4">
+                <Link onClick={() => setIsMenuOpen(false)} href="#fitur" className="text-lg font-bold text-gray-900">Fitur Utama</Link>
+                <Link onClick={() => setIsMenuOpen(false)} href="/edukasi" className="text-lg font-bold text-gray-900">Edukasi KIA</Link>
+                <Link onClick={() => setIsMenuOpen(false)} href="#tentang" className="text-lg font-bold text-gray-900">Tentang Kami</Link>
+              </div>
+              
+              <div className="pt-6 border-t border-gray-100 flex flex-col gap-3">
+                {user ? (
+                  <>
+                    <div className="flex items-center gap-3 p-4 bg-pink-50 rounded-2xl">
+                       <div className="h-10 w-10 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+                          {user.name.charAt(0).toUpperCase()}
+                       </div>
+                       <div>
+                          <p className="text-[10px] font-black text-pink-500 uppercase">Akun Aktif</p>
+                          <p className="text-sm font-bold text-gray-900">{user.name}</p>
+                       </div>
+                    </div>
+                    <Link 
+                      onClick={() => setIsMenuOpen(false)}
+                      href={user.role === 'bidan' ? '/dashboard/bidan' : '/dashboard/bumil'} 
+                      className="w-full py-4 bg-gray-900 text-white text-center font-bold rounded-2xl shadow-lg"
+                    >
+                      Buka Dashboard
+                    </Link>
+                    <button 
+                      onClick={() => { logout(); setIsMenuOpen(false); }}
+                      className="w-full py-4 bg-red-50 text-red-500 font-bold rounded-2xl flex items-center justify-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" /> Keluar Aplikasi
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link onClick={() => setIsMenuOpen(false)} href="/login" className="w-full py-4 bg-gray-50 text-gray-900 text-center font-bold rounded-2xl">Masuk</Link>
+                    <Link onClick={() => setIsMenuOpen(false)} href="/register" className="w-full py-4 bg-pink-500 text-white text-center font-bold rounded-2xl shadow-lg shadow-pink-100">Daftar Sekarang</Link>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
