@@ -986,7 +986,7 @@ export default function BidanBumilCheckupPage() {
                         { label: 'Tungkai', name: 'tungkai', options: ['Normal', 'Tidak normal'] },
                       ].map((field) => (
                         <div key={field.name} className="flex flex-col gap-1.5 p-2 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                          <span className="text-[10px] font-black text-gray-550 pl-1">{field.label}</span>
+                          <span className="text-[10px] font-black text-gray-700 pl-1">{field.label}</span>
                           <div className="flex bg-gray-50 p-0.5 rounded-xl border border-gray-100">
                             {field.options.map((opt) => {
                               const isSel = (docForm as any)[field.name] === opt;
