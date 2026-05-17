@@ -19,7 +19,7 @@ export default function BidanDashboard() {
       router.push('/login');
     } else if (user.role === 'bumil') {
       router.push('/dashboard/bumil');
-    } else if (user.role !== 'bidan') {
+    } else if (user.role !== 'bidan' && user.role !== 'dokter' && user.role !== 'superadmin') {
       router.push('/login');
     } else {
       fetchBumil();
@@ -28,8 +28,9 @@ export default function BidanDashboard() {
 
   const fetchBumil = async () => {
     try {
-      const res = await bumilApi.getAll();
-      setBumilData(res.data);
+      const res = await bumilApi.getAll({ limit: 1000 });
+      const items = res.data.data || (Array.isArray(res.data) ? res.data : []);
+      setBumilData(items);
     } catch (error) {
       console.error('Failed to fetch bumil data');
     } finally {
@@ -61,11 +62,11 @@ export default function BidanDashboard() {
     });
   }, [bumilData]);
 
-  if (!user || user.role !== 'bidan' || loading) {
+  if (!user || (user.role !== 'bidan' && user.role !== 'dokter' && user.role !== 'superadmin') || loading) {
     return (
       <div className="min-h-screen bg-pink-50 flex items-center justify-center">
         <div className="animate-pulse text-pink-500 font-bold text-xl text-center">
-          Memuat Dashboard Bidan...<br/>
+          Memuat Dashboard...<br/>
           <span className="text-sm font-normal text-gray-400">Menyiapkan data pemetaan</span>
         </div>
       </div>
@@ -84,7 +85,7 @@ export default function BidanDashboard() {
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <Link 
-              href="/skrining" 
+              href="/dashboard/bidan/skrining" 
               className="inline-flex items-center justify-center gap-2 bg-pink-400 text-white px-6 py-3.5 rounded-2xl font-bold shadow-lg shadow-pink-100 hover:bg-pink-500 transition-all w-full sm:w-auto"
             >
               <Plus className="w-5 h-5" />

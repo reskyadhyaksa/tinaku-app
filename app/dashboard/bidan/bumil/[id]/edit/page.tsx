@@ -1,30 +1,35 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter, useParams } from 'next/navigation';
 import { 
+  ArrowLeft, 
+  Save, 
   User, 
   MapPin, 
-  Save, 
   LocateFixed, 
-  LogOut,
   Map as MapIcon,
-  CheckCircle,
+  LogOut,
+  ChevronRight,
   Heart,
   Calendar,
   Clock
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 import { bumilApi } from '@/lib/api';
 import dynamic from 'next/dynamic';
 import toast from 'react-hot-toast';
 
 const LocationPickerMap = dynamic(() => import('@/components/LocationPickerMap'), {
   ssr: false,
-  loading: () => <div className="h-[300px] w-full bg-gray-100 animate-pulse rounded-xl mt-4" />
+  loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-2xl flex items-center justify-center font-bold text-gray-400">Menyiapkan Peta...</div>
 });
 
-export default function PendaftaranBumilPage() {
-  const { user, logout } = useAuth();
+export default function EditBumilPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const { id } = useParams();
+  
   const [formData, setFormData] = useState({
     name: '',
     nik: '',
@@ -36,14 +41,14 @@ export default function PendaftaranBumilPage() {
     gravida: '1',
     partus: '0',
     abortus: '0',
+    status: 'hamil',
     hpht: '',
     hpl: ''
   });
-  const [existingId, setExistingId] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [showMap, setShowMap] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
 
   // Custom Calendar Popover States for HPHT and HPL
   const [isHphtOpen, setIsHphtOpen] = useState(false);
@@ -108,12 +113,12 @@ export default function PendaftaranBumilPage() {
   }, [formData.hpl]);
 
   useEffect(() => {
-    if (user && user.role !== 'bumil') {
-      window.location.href = '/';
-    } else if (user) {
-      checkExistingData();
+    if (!user || (user.role !== 'bidan' && user.role !== 'dokter' && user.role !== 'superadmin')) {
+      router.push('/login');
+    } else {
+      fetchBumilData();
     }
-  }, [user]);
+  }, [user, id]);
 
   // Auto-calculate suggested HPL based on HPHT (HPHT + 280 days Naegele's rule)
   useEffect(() => {
@@ -128,32 +133,33 @@ export default function PendaftaranBumilPage() {
     }
   }, [formData.hpht]);
 
-  const checkExistingData = async () => {
+  const fetchBumilData = async () => {
     try {
-      const res = await bumilApi.getMe();
-      const myData = res.data;
-      
-      if (myData) {
-        setFormData({
-          name: myData.name,
-          nik: myData.nik || '',
-          age: myData.age.toString(),
-          address: myData.address,
-          kelurahan: myData.kelurahan || '',
-          lat: myData.latitude.toString(),
-          lng: myData.longitude.toString(),
-          gravida: (myData.gravida || 1).toString(),
-          partus: (myData.partus || 0).toString(),
-          abortus: (myData.abortus || 0).toString(),
-          hpht: myData.hpht ? new Date(myData.hpht).toISOString().split('T')[0] : '',
-          hpl: myData.hpl ? new Date(myData.hpl).toISOString().split('T')[0] : ''
-        });
-        setExistingId(myData.id);
+      const res = await bumilApi.getById(id as string);
+      const data = res.data;
+      setFormData({
+        name: data.name || '',
+        nik: data.nik || '',
+        age: data.age?.toString() || '',
+        address: data.address || '',
+        kelurahan: data.kelurahan || '',
+        lat: data.latitude?.toString() || data.coordinates?.[0]?.toString() || '',
+        lng: data.longitude?.toString() || data.coordinates?.[1]?.toString() || '',
+        gravida: data.gravida?.toString() || '1',
+        partus: data.partus?.toString() || '0',
+        abortus: data.abortus?.toString() || '0',
+        status: data.status || 'hamil',
+        hpht: data.hpht ? new Date(data.hpht).toISOString().split('T')[0] : '',
+        hpl: data.hpl ? new Date(data.hpl).toISOString().split('T')[0] : ''
+      });
+      if (data.latitude || data.coordinates?.[0]) {
+        setShowMap(true);
       }
-    } catch (error: any) {
-      if (error.response?.status !== 404) {
-        console.error('Gagal mengecek data lama');
-      }
+    } catch (error) {
+      toast.error('Gagal mengambil data ibu hamil');
+      router.push('/dashboard/bidan/bumil');
+    } finally {
+      setIsFetching(false);
     }
   };
 
@@ -172,6 +178,7 @@ export default function PendaftaranBumilPage() {
             lat: position.coords.latitude.toFixed(6),
             lng: position.coords.longitude.toFixed(6)
           }));
+          toast.success("Lokasi berhasil didapatkan!");
           setIsLocating(false);
         },
         (error) => {
@@ -209,7 +216,7 @@ export default function PendaftaranBumilPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    
+
     setIsLoading(true);
     try {
       const payload = {
@@ -218,56 +225,39 @@ export default function PendaftaranBumilPage() {
         gravida: parseInt(formData.gravida) || 1,
         partus: parseInt(formData.partus) || 0,
         abortus: parseInt(formData.abortus) || 0,
-        coordinates: [parseFloat(formData.lat) || 0, parseFloat(formData.lng) || 0],
-        riskStatus: 'KRR',
+        status: formData.status,
         hpht: formData.hpht || null,
         hpl: formData.hpl || null,
-        missedCheckup: false
+        coordinates: [parseFloat(formData.lat) || 0, parseFloat(formData.lng) || 0],
       };
 
-      if (existingId) {
-        await bumilApi.update(existingId, payload);
-        toast.success('Data pendaftaran berhasil diperbarui!');
-      } else {
-        await bumilApi.create(payload);
-        toast.success('Pendaftaran Anda berhasil dikirim!');
-        setIsSubmitted(true);
-      }
+      await bumilApi.update(id as string, payload);
+      toast.success('Data Ibu Hamil berhasil diperbarui!');
+      router.push('/dashboard/bidan/bumil');
     } catch (error) {
-      toast.error('Gagal mengirim data. Pastikan semua kolom terisi dengan benar.');
+      toast.error('Gagal memperbarui data.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (isSubmitted) {
-    return (
-      <div className="min-h-screen bg-pink-50 flex items-center justify-center p-6">
-        <div className="bg-white p-12 rounded-3xl shadow-xl text-center max-w-md border border-pink-100">
-          <div className="h-20 w-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle className="text-green-500 w-12 h-12" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Pendaftaran Berhasil!</h2>
-          <p className="text-gray-500 mb-8">Data Anda telah tersimpan. Bidan akan segera meninjau dan melakukan skrining lanjutan.</p>
-          <button onClick={logout} className="w-full bg-pink-500 text-white font-bold py-4 rounded-xl">
-            Keluar
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (isFetching) return <div className="min-h-screen bg-pink-50 flex items-center justify-center font-bold text-pink-500">Memuat Data...</div>;
 
   return (
     <div className="min-h-screen bg-pink-50 p-4 md:p-6 font-sans">
       <div className="max-w-3xl mx-auto space-y-6">
+        
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-6 md:px-8 md:py-6 rounded-3xl shadow-sm border border-pink-50">
-          <div className="text-center sm:text-left">
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900">Halo, {user?.name}</h1>
-            <p className="text-xs md:text-sm text-gray-500">Silakan lengkapi data diri Anda</p>
+          <div className="flex items-center gap-4">
+            <button onClick={() => router.push('/dashboard/bidan/bumil')} className="h-10 w-10 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm shrink-0">
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-gray-900">Lengkapi Data</h1>
+              <p className="text-xs text-gray-500 font-medium">Ibu Hamil: <span className="text-pink-500">{formData.name}</span></p>
+            </div>
           </div>
-          <button onClick={logout} className="flex items-center justify-center gap-2 text-red-500 font-bold text-xs md:text-sm bg-red-50 px-5 py-2.5 rounded-xl hover:bg-red-100 transition-colors border border-red-100 w-full sm:w-auto">
-            <LogOut className="w-4 h-4" /> Keluar
-          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -295,6 +285,18 @@ export default function PendaftaranBumilPage() {
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-700">Kelurahan</label>
                 <input type="text" name="kelurahan" value={formData.kelurahan} onChange={handleInputChange} required className="w-full px-4 py-3.5 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all" placeholder="Nama Kelurahan" />
+              </div>
+              <div className="space-y-2 bg-pink-50/20 p-4 rounded-2xl border border-pink-100/30">
+                <label className="text-sm font-bold text-pink-700">Status Kehamilan</label>
+                <select 
+                  name="status" 
+                  value={formData.status} 
+                  onChange={(e: any) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                  className="w-full px-4 py-3.5 rounded-2xl text-gray-700 border border-gray-100 bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all font-bold"
+                >
+                  <option value="hamil">🤰 Sedang Hamil</option>
+                  <option value="melahirkan">👶 Sudah Melahirkan</option>
+                </select>
               </div>
               <div className="space-y-2 bg-pink-50/20 p-4 rounded-2xl border border-pink-100/30 relative">
                 <label className="text-sm font-bold text-pink-700">HPHT (Hari Pertama Haid Terakhir)</label>
@@ -485,7 +487,7 @@ export default function PendaftaranBumilPage() {
                   <button type="button" onClick={() => setShowMap(!showMap)} className="flex-1 md:flex-none text-xs font-bold bg-gray-100 px-4 py-2.5 rounded-xl text-gray-600 hover:bg-gray-200 transition-colors">
                     <MapIcon className="w-4 h-4 inline mr-1.5" /> {showMap ? 'Tutup Peta' : 'Pilih di Peta'}
                   </button>
-                  <button type="button" onClick={getCurrentLocation} className="flex-1 md:flex-none text-xs font-bold bg-pink-50 px-4 py-2.5 rounded-xl text-pink-500 hover:bg-pink-100 transition-colors border border-pink-100">
+                  <button type="button" onClick={getCurrentLocation} className="flex-1 md:flex-none text-xs font-bold bg-pink-50 px-4 py-2.5 rounded-xl text-pink-500 hover:bg-pink-100 transition-colors border border-pink-100 shadow-sm shadow-pink-100/50">
                     <LocateFixed className="w-4 h-4 inline mr-1.5" /> Lokasi Saat Ini
                   </button>
                 </div>
@@ -494,7 +496,7 @@ export default function PendaftaranBumilPage() {
               {showMap && (
                 <div className="h-[300px] w-full rounded-2xl overflow-hidden border border-gray-200 relative bg-gray-50 mt-4 shadow-sm z-0">
                   <LocationPickerMap 
-                    key="registration-picker-map"
+                    key="edit-bumil-map"
                     lat={parseFloat(formData.lat) || -6.205} 
                     lng={parseFloat(formData.lng) || 106.82} 
                     onChange={(lat, lng) => setFormData(prev => ({ ...prev, lat: lat.toFixed(6), lng: lng.toFixed(6) }))} 
@@ -504,12 +506,12 @@ export default function PendaftaranBumilPage() {
 
               <div className="grid grid-cols-2 gap-4 mt-4">
                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-[10px] font-bold text-gray-400 block">LATITUDE</span>
-                  <span className="text-sm font-mono">{formData.lat || '-'}</span>
+                  <span className="text-[10px] font-bold text-gray-400 block tracking-widest uppercase">Latitude</span>
+                  <span className="text-sm font-mono font-bold text-gray-600">{formData.lat || '-'}</span>
                 </div>
                 <div className="bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  <span className="text-[10px] font-bold text-gray-400 block">LONGITUDE</span>
-                  <span className="text-sm font-mono">{formData.lng || '-'}</span>
+                  <span className="text-[10px] font-bold text-gray-400 block tracking-widest uppercase">Longitude</span>
+                  <span className="text-sm font-mono font-bold text-gray-600">{formData.lng || '-'}</span>
                 </div>
               </div>
             </div>
@@ -543,9 +545,9 @@ export default function PendaftaranBumilPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-pink-500 text-white font-bold py-5 rounded-2xl shadow-lg shadow-pink-100 hover:bg-pink-600 transition-all flex items-center justify-center gap-2"
+            className="w-full bg-pink-500 text-white font-bold py-5 rounded-3xl shadow-lg shadow-pink-100 hover:bg-pink-600 transition-all flex items-center justify-center gap-2"
           >
-            {isLoading ? 'Mengirim...' : 'Kirim Data Pendaftaran'}
+            {isLoading ? 'Menyimpan...' : 'Simpan Perubahan Data'}
             <Save className="w-5 h-5" />
           </button>
         </form>

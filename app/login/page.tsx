@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login, user } = useAuth();
@@ -26,7 +27,7 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await login({ username: username.toLowerCase(), password });
+      await login({ username: username.toLowerCase(), password, rememberMe });
     } catch (err: any) {
       setError(err.message);
       toast.error(err.message);
@@ -60,6 +61,8 @@ export default function LoginPage() {
               <UserIcon className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
               <input
                 type="text"
+                name="username"
+                autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 rounded-xl text-gray-700 border border-gray-200 focus:ring-2 focus:ring-pink-300 outline-none"
@@ -75,6 +78,8 @@ export default function LoginPage() {
               <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
               <input
                 type="password"
+                name="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 rounded-xl text-gray-700 border border-gray-200 focus:ring-2 focus:ring-pink-300 outline-none"
@@ -82,6 +87,21 @@ export default function LoginPage() {
                 required
               />
             </div>
+          </div>
+
+          <div className="flex items-center">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 text-pink-500 border-gray-300 rounded focus:ring-pink-300 accent-pink-500 cursor-pointer"
+              />
+              <span className="text-xs font-bold text-gray-500 hover:text-gray-700 transition-colors">
+                Ingat Saya (Selama 1 Bulan)
+              </span>
+            </label>
           </div>
 
           <button

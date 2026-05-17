@@ -21,16 +21,22 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  // Jika bukan bidan, jangan tampilkan sidebar ini
-  if (!user || user.role !== 'bidan') return null;
+  // Jika bukan bidan, dokter, atau superadmin, jangan tampilkan sidebar ini
+  if (!user || (user.role !== 'bidan' && user.role !== 'dokter' && user.role !== 'superadmin')) return null;
 
   const menuItems = [
     { name: 'Dashboard', href: '/dashboard/bidan', icon: LayoutDashboard },
-    { name: 'Data Bumil', href: '/bumil', icon: Heart },
-    { name: 'Edukasi KIA', href: '/edukasi', icon: BookOpen },
-    { name: 'Screening Bumil', href: '/skrining', icon: ClipboardCheck },
-    { name: 'User Bidan', href: '/bidan', icon: Users },
+    { name: 'Data Bumil', href: '/dashboard/bidan/bumil', icon: Heart },
+    { name: 'Screening Bumil', href: '/dashboard/bidan/skrining', icon: ClipboardCheck },
   ];
+
+  if (user.role === 'bidan' || user.role === 'superadmin') {
+    menuItems.push({ name: 'User Bidan', href: '/dashboard/bidan/bidan', icon: Users });
+  }
+
+  if (user.role === 'superadmin') {
+    menuItems.push({ name: 'User Dokter', href: '/dashboard/bidan/dokter', icon: Users });
+  }
 
   return (
     <>

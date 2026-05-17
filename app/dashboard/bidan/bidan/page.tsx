@@ -33,8 +33,10 @@ export default function UserBidanPage() {
   });
 
   useEffect(() => {
-    if (!user || user.role !== 'bidan') {
+    if (!user) {
       router.push('/login');
+    } else if (user.role !== 'superadmin') {
+      router.push('/dashboard/bidan');
     } else {
       fetchUsers();
     }

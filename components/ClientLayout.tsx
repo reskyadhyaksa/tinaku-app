@@ -15,13 +15,15 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   );
 
   const isLandingPage = pathname === '/';
-  const isBidan = user && user.role === 'bidan';
-  const isBumil = user && user.role === 'bumil';
+  const isEdukasiPage = pathname === '/edukasi' || pathname.startsWith('/edukasi/');
+  const hideSidebar = isLandingPage || isEdukasiPage;
+  const hasSidebarAccess = user && (user.role === 'bidan' || user.role === 'dokter' || user.role === 'superadmin');
+  const showSidebar = hasSidebarAccess && !hideSidebar;
 
   return (
-    <div className={`flex-1 flex flex-col lg:flex-row w-full ${isBidan && !isLandingPage ? '' : 'block'}`}>
-      {!isLandingPage && <Sidebar />}
-      <main className={`flex-1 w-full transition-all duration-300 ${isBidan && !isLandingPage ? 'lg:ml-72' : ''}`}>
+    <div className={`flex-1 flex flex-col lg:flex-row w-full ${showSidebar ? '' : 'block'}`}>
+      {showSidebar && <Sidebar />}
+      <main className={`flex-1 w-full transition-all duration-300 ${showSidebar ? 'lg:ml-72' : ''}`}>
         {children}
       </main>
     </div>

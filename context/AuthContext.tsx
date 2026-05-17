@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/lib/api';
 
-type Role = 'bidan' | 'bumil' | null;
+type Role = 'bidan' | 'bumil' | 'dokter' | 'superadmin' | null;
 
 interface User {
   id: string;

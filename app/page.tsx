@@ -17,13 +17,23 @@ import {
   AlertCircle,
   LogOut,
   Menu,
-  X
+  X,
+  ChevronLeft
 } from 'lucide-react';
 
 export default function LandingPage() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const photos = ['/me1.jpeg', '/me2.jpg'];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % photos.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [photos.length]);
 
   return (
     <div className="min-h-screen bg-white font-sans selection:bg-pink-100 selection:text-pink-600">
@@ -52,7 +62,7 @@ export default function LandingPage() {
                   <span className="text-sm font-bold text-gray-900">{user.name}</span>
                 </div>
                 <Link 
-                  href={user.role === 'bidan' ? '/dashboard/bidan' : '/dashboard/bumil'} 
+                  href={(user.role === 'bidan' || user.role === 'dokter' || user.role === 'superadmin') ? '/dashboard/bidan' : '/dashboard/bumil'} 
                   className="hidden sm:flex px-6 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-full shadow-lg hover:bg-pink-600 transition-all"
                 >
                   Dashboard
@@ -116,7 +126,7 @@ export default function LandingPage() {
                     </div>
                     <Link 
                       onClick={() => setIsMenuOpen(false)}
-                      href={user.role === 'bidan' ? '/dashboard/bidan' : '/dashboard/bumil'} 
+                      href={(user.role === 'bidan' || user.role === 'dokter' || user.role === 'superadmin') ? '/dashboard/bidan' : '/dashboard/bumil'} 
                       className="w-full py-4 bg-gray-900 text-white text-center font-bold rounded-2xl shadow-lg"
                     >
                       Buka Dashboard
@@ -157,7 +167,7 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Link 
-                href={user ? (user.role === 'bidan' ? '/dashboard/bidan' : '/dashboard/bumil') : '/register'} 
+                href={user ? ((user.role === 'bidan' || user.role === 'dokter' || user.role === 'superadmin') ? '/dashboard/bidan' : '/dashboard/bumil') : '/register'} 
                 className="group flex items-center justify-center gap-3 bg-gray-900 text-white px-8 py-5 rounded-2xl font-bold shadow-2xl hover:bg-pink-600 transition-all"
               >
                 {user ? 'Buka Dashboard Saya' : 'Mulai Pendaftaran'} <ArrowRight className="group-hover:translate-x-1 transition-transform" />
@@ -325,6 +335,86 @@ export default function LandingPage() {
                     <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2">Info Bencana</p>
                     <p className="text-lg font-black text-gray-900">BPBD Setempat</p>
                  </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Profil Inovator Section */}
+      <section id="tentang" className="py-24 bg-white relative overflow-hidden border-t border-gray-100">
+        <div className="absolute top-0 left-0 w-1/3 h-full bg-pink-50/30 skew-x-12 -translate-x-20"></div>
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            {/* Carousel Section */}
+            <div className="relative group rounded-[40px] overflow-hidden shadow-2xl shadow-pink-100/50 border border-pink-50 bg-pink-50">
+              <div 
+                className="flex transition-transform duration-700 ease-in-out h-[400px] md:h-[600px]"
+                style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+              >
+                {photos.map((photo, idx) => (
+                  <div key={idx} className="w-full h-full flex-shrink-0 relative">
+                    <img 
+                      src={photo} 
+                      alt={`Foto Inovator ${idx + 1}`} 
+                      className="w-full h-full object-cover object-top"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/60 via-transparent to-transparent"></div>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Carousel Controls */}
+              <div className="absolute inset-x-0 bottom-8 flex justify-center items-center gap-4">
+                <button 
+                  type="button"
+                  onClick={() => setCurrentSlide((prev) => (prev - 1 + photos.length) % photos.length)}
+                  className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-pink-500 transition-colors border border-white/30 shadow-lg"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <div className="flex gap-2">
+                  {photos.map((_, idx) => (
+                    <button 
+                      type="button"
+                      key={idx}
+                      onClick={() => setCurrentSlide(idx)}
+                      className={`h-2 rounded-full transition-all shadow-sm ${currentSlide === idx ? 'w-8 bg-pink-500' : 'w-2 bg-white/50 hover:bg-white'}`}
+                    />
+                  ))}
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setCurrentSlide((prev) => (prev + 1) % photos.length)}
+                  className="h-10 w-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-pink-500 transition-colors border border-white/30 shadow-lg"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Inovator Info */}
+            <div className="space-y-8 animate-in slide-in-from-right duration-700">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-pink-50 text-pink-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-pink-100">
+                <Heart className="w-4 h-4 fill-current" /> Inovator TINAKU
+              </div>
+              <div className="space-y-4">
+                <h3 className="text-3xl md:text-5xl font-black text-gray-900 leading-tight tracking-tight">
+                  Dedikasi untuk <br/>
+                  <span className="text-pink-500">Ibu & Buah Hati.</span>
+                </h3>
+                <div className="pt-4 space-y-2">
+                  <h4 className="text-2xl font-black text-gray-900">Bdn, Siti Rahma Has Ro'E, S.Tr.Keb</h4>
+                  <p className="text-lg font-bold text-pink-500">Bidan Koordinator</p>
+                  <p className="text-gray-500 font-bold flex items-center gap-2">
+                     <MapPin className="w-4 h-4 text-pink-300" /> UPTD Puskesmas Lere
+                  </p>
+                </div>
+              </div>
+              <div className="border-l-4 border-pink-200 pl-6 bg-gradient-to-r from-pink-50/50 to-transparent py-4 rounded-r-2xl pr-4">
+                <p className="text-gray-600 leading-relaxed text-lg italic font-medium">
+                  "TINAKU lahir dari kepedulian mendalam terhadap keselamatan Ibu dan Bayi. Saya percaya bahwa dengan edukasi yang tepat, pemantauan mandiri yang disiplin, serta koneksi cepat ke tenaga kesehatan, kita bisa memastikan 1000 Hari Pertama Kehidupan yang lebih sehat dan cerah."
+                </p>
               </div>
             </div>
           </div>

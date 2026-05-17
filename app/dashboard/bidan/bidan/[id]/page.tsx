@@ -27,8 +27,10 @@ export default function BidanDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user || user.role !== 'bidan') {
+    if (!user) {
       router.push('/login');
+    } else if (user.role !== 'superadmin') {
+      router.push('/dashboard/bidan');
     } else {
       fetchUserDetail();
     }
