@@ -18,7 +18,9 @@ import {
   X,
   Heart,
   Calendar,
-  Clock
+  Clock,
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react';
 import { authApi, bumilApi } from '@/lib/api';
 import Link from 'next/link';
@@ -54,7 +56,16 @@ export default function RegisterPage() {
   const [mapReady, setMapReady] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showTutorial, setShowTutorial] = useState(true);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitDisabled, setIsSubmitDisabled] = useState(false);
   const router = useRouter();
+
+  const stepNames = [
+    'Akses Akun',
+    'Data Personal',
+    'Lokasi Rumah',
+    'Riwayat Kesehatan'
+  ];
 
   // Custom Calendar Popover States for HPHT and HPL
   const [isHphtOpen, setIsHphtOpen] = useState(false);
@@ -125,13 +136,22 @@ export default function RegisterPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (currentStep === 4) {
+      setIsSubmitDisabled(true);
+      const timer = setTimeout(() => {
+        setIsSubmitDisabled(false);
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep]);
+
   const closeTutorial = () => {
     setShowTutorial(false);
     localStorage.setItem('hideRegisterTutorial', 'true');
   };
 
   useEffect(() => {
-    // Auto-show map for everyone after 2 seconds
     const timer = setTimeout(() => {
       setShowMap(true);
       setMapReady(true);
@@ -139,7 +159,6 @@ export default function RegisterPage() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Auto-calculate suggested HPL based on HPHT (HPHT + 280 days Naegele's rule)
   useEffect(() => {
     if (formData.hpht) {
       const hphtDate = new Date(formData.hpht);
@@ -155,21 +174,45 @@ export default function RegisterPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleNextStep = () => {
+    if (currentStep === 1) {
+      if (formData.username.length < 3) {
+        toast.error('Username minimal 3 karakter');
+        return;
+      }
+      if (formData.password.length < 6) {
+        toast.error('Password minimal 6 karakter');
+        return;
+      }
+    } else if (currentStep === 2) {
+      if (!formData.name || !formData.nik || !formData.age || !formData.kelurahan || !formData.address) {
+        toast.error('Mohon lengkapi semua data personal');
+        return;
+      }
+      if (formData.nik.length !== 16) {
+        toast.error('NIK harus tepat 16 digit!');
+        return;
+      }
+    } else if (currentStep === 3) {
+      if (!formData.lat || !formData.lng) {
+        toast.error('Silakan tentukan lokasi rumah pada peta!');
+        return;
+      }
+    }
+    setCurrentStep(prev => prev + 1);
+  };
+
+  const handlePrevStep = () => {
+    setCurrentStep(prev => prev - 1);
+  };
+
   const validateForm = () => {
-    if (formData.username.length < 3) {
-      toast.error('Username minimal 3 karakter');
-      return false;
-    }
-    if (formData.password.length < 6) {
-      toast.error('Password minimal 6 karakter');
-      return false;
-    }
-    if (formData.nik.length !== 16) {
-      toast.error('NIK harus tepat 16 digit!');
-      return false;
-    }
-    if (!formData.lat || !formData.lng) {
-      toast.error('Silakan tentukan lokasi rumah pada peta!');
+    if (formData.username.length < 3) return false;
+    if (formData.password.length < 6) return false;
+    if (formData.nik.length !== 16) return false;
+    if (!formData.lat || !formData.lng) return false;
+    if (!formData.gravida || !formData.partus || !formData.abortus) {
+      toast.error('Mohon lengkapi riwayat kesehatan');
       return false;
     }
     return true;
@@ -190,7 +233,6 @@ export default function RegisterPage() {
         role: 'bumil'
       });
 
-      // 2. Login untuk dapat token (dibutuhkan untuk create profile)
       const loginRes = await authApi.login({
         username: formData.username.toLowerCase(),
         password: formData.password
@@ -199,7 +241,6 @@ export default function RegisterPage() {
       const token = loginRes.data.token;
       localStorage.setItem('token', token);
 
-      // 3. Create Profil Bumil
       await bumilApi.create({
         name: formData.name,
         nik: formData.nik,
@@ -256,21 +297,37 @@ export default function RegisterPage() {
       </div>
     );
   }
-
   return (
-    <div className="min-h-screen bg-pink-50 flex items-center justify-center p-4 md:p-8 font-sans">
-      <div className="bg-white w-full max-w-6xl rounded-[40px] shadow-2xl p-6 md:p-12 lg:p-16 border border-pink-100">
+    <div className="min-h-screen bg-pink-50 flex items-center justify-center p-4 md:p-6 lg:p-8 font-sans">
+      <div className="bg-white w-full max-w-3xl rounded-3xl lg:rounded-[40px] shadow-2xl p-6 md:p-8 lg:p-12 border border-pink-100">
         
-        <div className="flex flex-col items-center mb-8 text-center">
+        <div className="flex flex-col items-center mb-6 text-center">
           <div className="h-16 w-16 bg-pink-100 rounded-2xl flex items-center justify-center mb-4">
             <UserPlus className="text-pink-500 w-8 h-8" />
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Pendaftaran Ibu Hamil</h1>
-          <p className="text-gray-500 text-sm mt-1">Lengkapi satu langkah mudah untuk mendapatkan layanan TINAKU</p>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900">Pendaftaran Ibu Hamil</h1>
+          <p className="text-gray-500 text-sm mt-1">Lengkapi data secara bertahap untuk layanan TINAKU</p>
+        </div>
+
+        {/* Step Indicator */}
+        <div className="flex items-center justify-center gap-2 mb-6 md:mb-8 lg:mb-10">
+          {[1, 2, 3, 4].map(s => (
+            <div key={s} className="flex items-center">
+              <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                currentStep === s ? 'bg-pink-500 text-white shadow-md shadow-pink-200 scale-110' : 
+                currentStep > s ? 'bg-pink-200 text-pink-700' : 'bg-gray-100 text-gray-400'
+              }`}>
+                {currentStep > s ? <CheckCircle className="w-4 h-4" /> : s}
+              </div>
+              {s < 4 && (
+                <div className={`h-1 w-8 md:w-16 mx-1 rounded-full transition-colors duration-300 ${currentStep > s ? 'bg-pink-200' : 'bg-gray-100'}`} />
+              )}
+            </div>
+          ))}
         </div>
 
         {showTutorial && (
-          <div className="mb-8 bg-gradient-to-br from-pink-500/5 to-pink-500/10 border border-pink-100/50 rounded-3xl p-5 relative overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="mb-8 bg-gradient-to-br from-pink-500/5 to-pink-500/10 border border-pink-100/50 rounded-3xl p-5 relative overflow-hidden animate-in fade-in duration-300">
             <button 
               type="button" 
               onClick={closeTutorial} 
@@ -284,30 +341,49 @@ export default function RegisterPage() {
               <div className="h-10 w-10 bg-white rounded-2xl flex items-center justify-center text-pink-500 shadow-sm shrink-0 border border-pink-50">
                 <BookOpen className="w-5 h-5" />
               </div>
-              <div className="space-y-4 w-full pr-4">
+              <div className="space-y-3 w-full pr-4">
                 <div>
-                  <h4 className="text-sm font-extrabold text-gray-900">💡 Panduan Cepat Registrasi (Khusus HP)</h4>
-                  <p className="text-xs text-gray-500 mt-0.5">Ikuti 3 langkah mudah berikut untuk mendaftar:</p>
+                  <h4 className="text-sm font-extrabold text-gray-900">💡 Panduan Registrasi: Langkah {currentStep} - {stepNames[currentStep - 1]}</h4>
+                  <p className="text-xs text-gray-500 mt-0.5">Petunjuk pengisian untuk mempermudah pendaftaran Anda:</p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                  <div className="bg-white/80 backdrop-blur-sm p-3 rounded-2xl border border-pink-50/50 space-y-1 shadow-sm">
-                    <span className="text-[9px] font-black text-pink-500 tracking-wider uppercase block">Langkah 1</span>
-                    <h5 className="text-[11px] font-bold text-gray-800">Akses Akun</h5>
-                    <p className="text-[10px] text-gray-500 leading-relaxed">Buat Username & Password unik (min. 6 karakter) untuk login nantinya.</p>
-                  </div>
-                  
-                  <div className="bg-white/80 backdrop-blur-sm p-3 rounded-2xl border border-pink-50/50 space-y-1 shadow-sm">
-                    <span className="text-[9px] font-black text-pink-500 tracking-wider uppercase block">Langkah 2</span>
-                    <h5 className="text-[11px] font-bold text-gray-800">Data Diri & NIK</h5>
-                    <p className="text-[10px] text-gray-500 leading-relaxed">Isi NIK KTP Anda. Pastikan **tepat 16 digit** angka agar sistem memvalidasi.</p>
-                  </div>
-
-                  <div className="bg-white/80 backdrop-blur-sm p-3 rounded-2xl border border-pink-50/50 space-y-1 shadow-sm">
-                    <span className="text-[9px] font-black text-pink-500 tracking-wider uppercase block">Langkah 3</span>
-                    <h5 className="text-[11px] font-bold text-gray-800">Lokasi Rumah</h5>
-                    <p className="text-[10px] text-gray-500 leading-relaxed">Klik **"Deteksi Lokasi GPS"** agar GPS HP mendeteksi, atau klik manual di peta.</p>
-                  </div>
+                <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-pink-50/50 space-y-1 shadow-sm transition-all duration-300">
+                  {currentStep === 1 && (
+                    <>
+                      <span className="text-[9px] font-black text-pink-500 tracking-wider uppercase block">Tahap 1: Akses Akun</span>
+                      <h5 className="text-xs font-bold text-gray-800">Pembuatan Username & Password</h5>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Buatlah <span className="font-semibold text-gray-800">Username</span> dan <span className="font-semibold text-gray-800">Password</span> unik (minimal 6 karakter) yang mudah diingat. Keduanya akan digunakan sebagai akses masuk ke sistem TINAKU di kemudian hari.
+                      </p>
+                    </>
+                  )}
+                  {currentStep === 2 && (
+                    <>
+                      <span className="text-[9px] font-black text-pink-500 tracking-wider uppercase block">Tahap 2: Data Personal</span>
+                      <h5 className="text-xs font-bold text-gray-800">Kelengkapan Identitas & HPHT</h5>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Masukkan <span className="font-semibold text-gray-800">Nama Lengkap</span>, <span className="font-semibold text-gray-800">NIK (tepat 16 digit)</span>, dan alamat tinggal. Isi juga tanggal <span className="font-semibold text-gray-800">HPHT (Hari Pertama Haid Terakhir)</span> Anda, sistem kami akan memperkirakan tanggal melahirkan (HPL) secara otomatis.
+                      </p>
+                    </>
+                  )}
+                  {currentStep === 3 && (
+                    <>
+                      <span className="text-[9px] font-black text-pink-500 tracking-wider uppercase block">Tahap 3: Lokasi Rumah</span>
+                      <h5 className="text-xs font-bold text-gray-800">Menentukan Lokasi Geografis</h5>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Gunakan tombol <span className="font-semibold text-gray-800">Deteksi Lokasi GPS Saya</span> agar koordinat rumah terisi secara otomatis, atau geser pin di peta tepat di atas bangunan rumah Anda untuk kemudahan penanganan oleh Bidan Binaan.
+                      </p>
+                    </>
+                  )}
+                  {currentStep === 4 && (
+                    <>
+                      <span className="text-[9px] font-black text-pink-500 tracking-wider uppercase block">Tahap 4: Riwayat Kesehatan</span>
+                      <h5 className="text-xs font-bold text-gray-800">Informasi Kehamilan Sebelumnya (G-P-A)</h5>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        Isikan riwayat kesehatan kehamilan Anda: <span className="font-semibold text-gray-800">G (Gravida/Hamil Ke)</span>, <span className="font-semibold text-gray-800">P (Partus/Pernah Melahirkan)</span>, dan <span className="font-semibold text-gray-800">A (Abortus/Pernah Keguguran)</span>. Jika ini kehamilan pertama dan belum pernah melahirkan atau keguguran, isi dengan G: 1, P: 0, A: 0.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -321,20 +397,26 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8 md:space-y-12">
+        <form 
+          onSubmit={handleSubmit} 
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+              e.preventDefault();
+            }
+          }} 
+          className="space-y-8"
+        >
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16">
-            
-            <div className="space-y-10">
-              {/* Section 01: Akses Akun */}
-              <section className="space-y-6">
-                <div className="flex items-center gap-3 border-l-4 border-pink-500 pl-4 py-1">
-                   <h3 className="text-xs md:text-sm font-black text-gray-900 uppercase tracking-widest">01. Akses Akun</h3>
+          <div className="min-h-[300px]">
+            {currentStep === 1 && (
+              <section className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                <div className="flex items-center gap-3 border-l-4 border-pink-500 pl-4 py-1 mb-6">
+                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">01. Akses Akun</h3>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-5">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-500 ml-1">Username</label>
-                    <input type="text" name="username" value={formData.username} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="Buat username" />
+                    <input type="text" name="username" value={formData.username} onChange={handleInputChange} required={currentStep === 1} className="w-full px-4 py-3 md:px-5 md:py-3.5 lg:py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="Buat username" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-500 ml-1">Password</label>
@@ -344,8 +426,8 @@ export default function RegisterPage() {
                         name="password" 
                         value={formData.password} 
                         onChange={handleInputChange} 
-                        required 
-                        className="w-full px-5 py-4 pr-12 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" 
+                        required={currentStep === 1} 
+                        className="w-full px-4 py-3 md:px-5 md:py-3.5 lg:py-4 pr-12 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" 
                         placeholder="Min. 6 Karakter" 
                       />
                       <button
@@ -360,31 +442,32 @@ export default function RegisterPage() {
                   </div>
                 </div>
               </section>
+            )}
 
-              {/* Section 02: Data Personal */}
-              <section className="space-y-6">
-                <div className="flex items-center gap-3 border-l-4 border-pink-500 pl-4 py-1">
-                   <h3 className="text-xs md:text-sm font-black text-gray-900 uppercase tracking-widest">02. Data Personal</h3>
+            {currentStep === 2 && (
+              <section className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                <div className="flex items-center gap-3 border-l-4 border-pink-500 pl-4 py-1 mb-6">
+                   <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">02. Data Personal</h3>
                 </div>
                 <div className="space-y-5">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-500 ml-1">Nama Lengkap</label>
-                    <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="Sesuai KTP" />
+                    <input type="text" name="name" value={formData.name} onChange={handleInputChange} required={currentStep === 2} className="w-full px-4 py-3 md:px-5 md:py-3.5 lg:py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="Sesuai KTP" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-gray-500 ml-1">NIK (16 Digit)</label>
-                      <input type="text" name="nik" value={formData.nik} onChange={handleInputChange} required maxLength={16} className="w-full px-5 py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="16 digit angka" />
+                      <input type="text" name="nik" value={formData.nik} onChange={handleInputChange} required={currentStep === 2} maxLength={16} className="w-full px-4 py-3 md:px-5 md:py-3.5 lg:py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="16 digit angka" />
                       <span className="text-[10px] text-gray-400 block mt-1 ml-1 leading-normal">Harus tepat 16 angka KTP</span>
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-gray-500 ml-1">Umur</label>
-                      <input type="number" name="age" value={formData.age} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="Tahun" />
+                      <input type="number" name="age" value={formData.age} onChange={handleInputChange} required={currentStep === 2} className="w-full px-4 py-3 md:px-5 md:py-3.5 lg:py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="Tahun" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-500 ml-1">Kelurahan</label>
-                    <input type="text" name="kelurahan" value={formData.kelurahan} onChange={handleInputChange} required className="w-full px-5 py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="Kelurahan domisili" />
+                    <input type="text" name="kelurahan" value={formData.kelurahan} onChange={handleInputChange} required={currentStep === 2} className="w-full px-4 py-3 md:px-5 md:py-3.5 lg:py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium" placeholder="Kelurahan domisili" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div className="space-y-2 bg-pink-50/20 p-4 rounded-2xl border border-pink-100/30 relative">
@@ -402,7 +485,7 @@ export default function RegisterPage() {
                           readOnly
                           value={formData.hpht ? new Date(formData.hpht).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Pilih Tanggal'} 
                           onClick={() => setIsHphtOpen(true)}
-                          className="w-full pl-2 pr-4 py-3.5 rounded-xl text-xs font-bold text-gray-700 outline-none border-none focus:ring-0 bg-transparent cursor-pointer"
+                          className="w-full pl-2 pr-4 py-2.5 md:py-3 lg:py-3.5 rounded-xl text-xs font-bold text-gray-700 outline-none border-none focus:ring-0 bg-transparent cursor-pointer"
                         />
 
                         {isHphtOpen && (
@@ -489,7 +572,7 @@ export default function RegisterPage() {
                           readOnly
                           value={formData.hpl ? new Date(formData.hpl).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Pilih Tanggal'} 
                           onClick={() => setIsHplOpen(true)}
-                          className="w-full pl-2 pr-4 py-3.5 rounded-xl text-xs font-bold text-gray-700 outline-none border-none focus:ring-0 bg-transparent cursor-pointer"
+                          className="w-full pl-2 pr-4 py-2.5 md:py-3 lg:py-3.5 rounded-xl text-xs font-bold text-gray-700 outline-none border-none focus:ring-0 bg-transparent cursor-pointer"
                         />
 
                         {isHplOpen && (
@@ -564,22 +647,21 @@ export default function RegisterPage() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-gray-500 ml-1">Alamat Lengkap</label>
-                    <textarea name="address" value={formData.address} onChange={handleInputChange} required rows={3} className="w-full px-5 py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium resize-none" placeholder="RT/RW, Nama Jalan, No. Rumah"></textarea>
+                    <textarea name="address" value={formData.address} onChange={handleInputChange} required={currentStep === 2} rows={3} className="w-full px-4 py-3 md:px-5 md:py-3.5 lg:py-4 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-4 focus:ring-pink-100 outline-none transition-all text-sm font-medium resize-none" placeholder="RT/RW, Nama Jalan, No. Rumah"></textarea>
                   </div>
                 </div>
               </section>
-            </div>
+            )}
 
-            <div className="space-y-10">
-              {/* Section 03: Lokasi Geografis */}
-              <section className="space-y-6">
-                <div className="flex items-center gap-3 border-l-4 border-pink-500 pl-4 py-1">
-                   <h3 className="text-xs md:text-sm font-black text-gray-900 uppercase tracking-widest">03. Lokasi Geografis</h3>
+            {currentStep === 3 && (
+              <section className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                <div className="flex items-center gap-3 border-l-4 border-pink-500 pl-4 py-1 mb-6">
+                   <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">03. Lokasi Geografis</h3>
                 </div>
                 
                 <div className="flex flex-col gap-6">
                   <div className="space-y-1">
-                    <button type="button" onClick={getCurrentLocation} className="w-full bg-white text-pink-500 font-black py-4 rounded-2xl text-xs hover:bg-pink-50 transition-all border-2 border-pink-100 flex items-center justify-center gap-3 shadow-sm active:scale-[0.98]">
+                    <button type="button" onClick={getCurrentLocation} className="w-full bg-white text-pink-500 font-black py-3 lg:py-4 rounded-2xl text-xs hover:bg-pink-50 transition-all border-2 border-pink-100 flex items-center justify-center gap-3 shadow-sm active:scale-[0.98]">
                       <LocateFixed className="w-5 h-5" /> Deteksi Lokasi GPS Saya
                     </button>
                     <span className="text-[10px] text-gray-400 block text-center mt-1">Pastikan menu Lokasi / GPS di HP Anda menyala</span>
@@ -605,45 +687,73 @@ export default function RegisterPage() {
                   </div>
                 </div>
               </section>
+            )}
 
-              {/* Section 04: Riwayat Singkat Kesehatan Ibu */}
-              <section className="space-y-6">
-                <div className="flex items-center gap-3 border-l-4 border-pink-500 pl-4 py-1">
-                   <h3 className="text-xs md:text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
+            {currentStep === 4 && (
+              <section className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-300">
+                <div className="flex items-center gap-3 border-l-4 border-pink-500 pl-4 py-1 mb-6">
+                   <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest flex items-center gap-2">
                      <Heart className="w-4 h-4 text-pink-500 animate-pulse" /> 04. Riwayat Kesehatan Ibu
                    </h3>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="space-y-2 p-3 bg-pink-50/20 rounded-2xl border border-pink-100/30">
-                    <label className="text-[11px] font-black text-pink-700 block uppercase tracking-wider">G - Hamil Ke</label>
-                    <input type="number" name="gravida" value={formData.gravida} onChange={handleInputChange} required min={1} className="w-full px-4 py-3 rounded-xl text-pink-750 border border-pink-100 bg-pink-50/30 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all font-bold text-xs" placeholder="Ke-berapa" />
+                  <div className="space-y-2 p-4 bg-pink-50/20 rounded-2xl border border-pink-100/30">
+                    <label className="text-xs font-black text-pink-700 block uppercase tracking-wider">G - Hamil Ke</label>
+                    <input type="number" name="gravida" value={formData.gravida} onChange={handleInputChange} required={currentStep === 4} min={1} className="w-full px-4 py-3 rounded-xl text-pink-750 border border-pink-100 bg-pink-50/30 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all font-bold text-xs" placeholder="Ke-berapa" />
                   </div>
-                  <div className="space-y-2 p-3 bg-green-50/20 rounded-2xl border border-green-100/30">
-                    <label className="text-[11px] font-black text-green-700 block uppercase tracking-wider">P - Melahirkan</label>
-                    <input type="number" name="partus" value={formData.partus} onChange={handleInputChange} required min={0} className="w-full px-4 py-3 rounded-xl text-green-750 border border-green-100 bg-green-50/30 focus:bg-white focus:ring-2 focus:ring-green-200 outline-none transition-all font-bold text-xs" placeholder="Melahirkan" />
+                  <div className="space-y-2 p-4 bg-green-50/20 rounded-2xl border border-green-100/30">
+                    <label className="text-xs font-black text-green-700 block uppercase tracking-wider">P - Melahirkan</label>
+                    <input type="number" name="partus" value={formData.partus} onChange={handleInputChange} required={currentStep === 4} min={0} className="w-full px-4 py-3 rounded-xl text-green-750 border border-green-100 bg-green-50/30 focus:bg-white focus:ring-2 focus:ring-green-200 outline-none transition-all font-bold text-xs" placeholder="Melahirkan" />
                   </div>
-                  <div className="space-y-2 p-3 bg-red-50/20 rounded-2xl border border-red-100/30">
-                    <label className="text-[11px] font-black text-red-700 block uppercase tracking-wider">A - Keguguran</label>
-                    <input type="number" name="abortus" value={formData.abortus} onChange={handleInputChange} required min={0} className="w-full px-4 py-3 rounded-xl text-red-750 border border-red-100 bg-red-50/30 focus:bg-white focus:ring-2 focus:ring-red-200 outline-none transition-all font-bold text-xs" placeholder="Keguguran" />
+                  <div className="space-y-2 p-4 bg-red-50/20 rounded-2xl border border-red-100/30">
+                    <label className="text-xs font-black text-red-700 block uppercase tracking-wider">A - Keguguran</label>
+                    <input type="number" name="abortus" value={formData.abortus} onChange={handleInputChange} required={currentStep === 4} min={0} className="w-full px-4 py-3 rounded-xl text-red-750 border border-red-100 bg-red-50/30 focus:bg-white focus:ring-2 focus:ring-red-200 outline-none transition-all font-bold text-xs" placeholder="Keguguran" />
                   </div>
                 </div>
               </section>
-            </div>
+            )}
           </div>
 
-          <div className="pt-10 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-8">
-            <p className="text-sm font-medium text-gray-500 text-center md:text-left">
-              Sudah memiliki akun? <Link href="/login" className="text-pink-500 font-black hover:underline">Masuk Sekarang</Link>
-            </p>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full md:w-auto md:px-12 bg-gray-900 text-white font-black py-5 rounded-[24px] shadow-2xl hover:bg-pink-600 transition-all flex items-center justify-center gap-3 disabled:opacity-50 group"
-            >
-              {isLoading ? 'Sedang Memproses...' : 'Selesaikan Pendaftaran'}
-              <Save className="w-5 h-5 group-hover:scale-110 transition-transform" />
-            </button>
+          <div className="pt-8 mt-4 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+            {currentStep > 1 && (
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                className="w-full md:w-auto px-5 py-3.5 lg:px-6 lg:py-4 bg-gray-50 text-gray-700 font-bold rounded-2xl hover:bg-gray-100 transition-all flex items-center justify-center gap-2 border border-gray-200"
+              >
+                <ChevronLeft className="w-5 h-5" /> Sebelumnya
+              </button>
+            )}
+            
+            <div className={`flex-1 text-center md:text-left ${currentStep > 1 ? 'order-last md:order-none' : ''}`}>
+              {currentStep === 1 && (
+                <p className="text-sm font-medium text-gray-500">
+                  Sudah memiliki akun? <Link href="/login" className="text-pink-500 font-black hover:underline">Masuk Sekarang</Link>
+                </p>
+              )}
+            </div>
+
+            {currentStep < 4 ? (
+              <button
+                key="next-button"
+                type="button"
+                onClick={handleNextStep}
+                className={`w-full md:w-auto px-6 py-3.5 lg:px-8 lg:py-4 bg-pink-500 text-white font-black rounded-2xl shadow-xl shadow-pink-200 hover:bg-pink-600 transition-all flex items-center justify-center gap-2 group ${currentStep === 1 ? 'ml-auto' : ''}`}
+              >
+                Selanjutnya <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </button>
+            ) : (
+              <button
+                key="submit-button"
+                type="submit"
+                disabled={isLoading || isSubmitDisabled}
+                className="w-full md:w-auto px-6 py-3.5 lg:px-8 lg:py-4 bg-gray-900 text-white font-black rounded-2xl shadow-xl hover:bg-pink-600 transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
+              >
+                {isLoading ? 'Memproses...' : 'Selesaikan Pendaftaran'}
+                <Save className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              </button>
+            )}
           </div>
         </form>
       </div>

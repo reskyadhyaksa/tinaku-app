@@ -15,7 +15,10 @@ import {
   Calendar,
   Coffee,
   HelpCircle,
-  TrendingUp
+  TrendingUp,
+  Home,
+  Activity,
+  BookOpen
 } from 'lucide-react';
 import { bumilApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -27,7 +30,6 @@ export default function TtdMonitoringPage() {
   const [loading, setLoading] = useState(true);
   const [savingMetadata, setSavingMetadata] = useState(false);
 
-  // Form states
   const [activeMonth, setActiveMonth] = useState(1);
   const [pendampingName, setPendampingName] = useState('');
   const [pendampingRelation, setPendampingRelation] = useState('');
@@ -38,9 +40,8 @@ export default function TtdMonitoringPage() {
     if (!user) {
       router.push('/login');
     } else if (user.role !== 'bumil') {
-      // If Bidan access this page, redirect or handle, but let's assume it's for bumil
-      // We will also allow bidan to view this page if we pass an ID in URL, but right now this is for the logged in bumil
-      router.push('/dashboard/bidan');
+
+      router.push('/dashboard/admin');
     } else {
       fetchData();
     }
@@ -48,19 +49,17 @@ export default function TtdMonitoringPage() {
 
   const fetchData = async () => {
     try {
-      // 1. Fetch bumil profile
+      
       const profileRes = await bumilApi.getMe();
       const bumilData = profileRes.data;
       setProfile(bumilData);
 
-      // 2. Fetch TTD data
       const ttdRes = await bumilApi.getTtd(bumilData.id);
       const { metadata, logs: ttdLogs } = ttdRes.data;
 
       setPendampingName(metadata.pendamping_name || '');
       setRelationPreset(metadata.pendamping_relation || '');
 
-      // Parse logs into quick lookup map: "month_ke-day" -> true
       const logsMap: { [key: string]: boolean } = {};
       const monthYearsMap: { [key: number]: string } = {};
 
@@ -76,7 +75,6 @@ export default function TtdMonitoringPage() {
       setLogs(logsMap);
       setMonthYears(monthYearsMap);
 
-      // Auto-select month of pregnancy based on HPL (approx 280 days total pregnancy)
       if (bumilData.hpl) {
         const hplDate = new Date(bumilData.hpl);
         const today = new Date();
@@ -98,7 +96,6 @@ export default function TtdMonitoringPage() {
     setPendampingRelation(val);
   };
 
-  // Save Husband/Companion metadata
   const handleSaveMetadata = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
@@ -117,11 +114,9 @@ export default function TtdMonitoringPage() {
     }
   };
 
-  // Toggle checkbox intake log
   const handleToggleDay = async (monthKe: number, day: number) => {
     if (!profile) return;
 
-    // Check if the day is before registration date
     if (profile.hpl && profile.created_at) {
       const hplDate = new Date(profile.hpl);
       const daysPregnant = (monthKe - 1) * 30 + day;
@@ -142,7 +137,6 @@ export default function TtdMonitoringPage() {
     const wasTaken = !!logs[key];
     const isTaking = !wasTaken;
 
-    // Optimistic UI update
     setLogs(prev => ({
       ...prev,
       [key]: isTaking
@@ -158,7 +152,7 @@ export default function TtdMonitoringPage() {
       });
       toast.success(`Hari ke-${day} Bulan ke-${monthKe} berhasil diperbarui!`, { id: 'ttd-toast' });
     } catch (error) {
-      // Revert UI on failure
+      
       setLogs(prev => ({
         ...prev,
         [key]: wasTaken
@@ -167,7 +161,6 @@ export default function TtdMonitoringPage() {
     }
   };
 
-  // Handle month/year text input changes and autosave
   const handleMonthYearChange = (monthKe: number, val: string) => {
     setMonthYears(prev => ({
       ...prev,
@@ -179,10 +172,7 @@ export default function TtdMonitoringPage() {
     if (!profile) return;
     const monthYearStr = monthYears[monthKe] || '';
     try {
-      // To save the month year string, we trigger a toggle call on a dummy day (e.g. day 0) or just update metadata.
-      // In our toggle endpoint, any day toggle also updates the 'bulan_tahun' for that month_ke.
-      // So we can send a toggled taken status for day 1 (or just let the user toggle normally and save the string).
-      // Let's call the API to save the month year by toggling day 1 with its current state.
+
       const currentDay1State = !!logs[`${monthKe}-1`];
       await bumilApi.toggleTtdLog(profile.id, {
         bulan_ke: monthKe,
@@ -197,7 +187,6 @@ export default function TtdMonitoringPage() {
     }
   };
 
-  // Dynamic Target Calculation
   const getDynamicTarget = (createdAt: string, hpl: string) => {
     if (!createdAt || !hpl) return 180;
     const regDate = new Date(createdAt);
@@ -212,10 +201,9 @@ export default function TtdMonitoringPage() {
     return 180;
   };
 
-  // Stats calculation
   const targetTtd = getDynamicTarget(profile?.created_at, profile?.hpl);
   const totalTaken = Object.values(logs).filter(Boolean).length;
-  const compliancePercentage = Math.min(100, Math.round((totalTaken / targetTtd) * 100)); // Target dynamically calculated based on registration date
+  const compliancePercentage = Math.min(100, Math.round((totalTaken / targetTtd) * 100)); 
 
   if (loading || !profile) {
     return (
@@ -232,22 +220,30 @@ export default function TtdMonitoringPage() {
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
   return (
-    <div className="min-h-screen bg-pink-50 p-4 md:p-8 font-sans pb-24">
+    <div className="min-h-screen bg-pink-50 p-4 md:p-8 font-sans pb-24 animate-fade-in-up">
       <div className="max-w-7xl mx-auto space-y-8">
-        
-        {/* Top Navigation */}
-        <div className="flex items-center justify-between">
-          <Link href="/dashboard/bumil" className="flex items-center gap-2 text-pink-500 font-bold hover:opacity-80 transition-all text-sm">
-            <ArrowLeft className="w-5 h-5" />
-            <span>Kembali ke Dashboard</span>
-          </Link>
+
+        <div className="flex items-center justify-between bg-white px-6 py-4 rounded-3xl shadow-sm border border-pink-100/50">
+          <div className="flex items-center gap-6">
+            <Link href="/dashboard/bumil" className="flex items-center gap-2 text-gray-600 hover:text-pink-500 font-bold transition-all text-sm">
+              <Home className="w-4 h-4 text-pink-400" />
+              <span>Dashboard</span>
+            </Link>
+            <Link href="/fitur" className="flex items-center gap-2 text-gray-600 hover:text-pink-500 font-bold transition-all text-sm">
+              <Activity className="w-4 h-4 text-pink-400" />
+              <span>Fitur Aplikasi</span>
+            </Link>
+            <Link href="/edukasi" className="flex items-center gap-2 text-gray-600 hover:text-pink-500 font-bold transition-all text-sm">
+              <BookOpen className="w-4 h-4 text-pink-400" />
+              <span>Edukasi KIA</span>
+            </Link>
+          </div>
           <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-green-500 animate-ping"></div>
-            <span className="text-xs font-bold text-gray-500">Sinkronisasi Cloud Aktif</span>
+            <div className="h-2 w-2 rounded-full bg-green-500 animate-ping animate-duration-1000"></div>
+            <span className="text-[10px] font-bold text-gray-500 hidden sm:inline">Sinkronisasi Cloud Aktif</span>
           </div>
         </div>
 
-        {/* Header Section */}
         <div className="bg-gradient-to-br from-pink-500 to-pink-600 p-6 md:p-8 rounded-[40px] text-white shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-8 opacity-10">
             <Calendar className="w-64 h-64" />
@@ -261,7 +257,6 @@ export default function TtdMonitoringPage() {
           </div>
         </div>
 
-        {/* Informational Alerts */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white p-5 rounded-3xl border border-pink-100/50 flex gap-4">
             <div className="h-10 w-10 bg-pink-50 rounded-2xl flex items-center justify-center text-pink-500 shrink-0">
@@ -270,7 +265,7 @@ export default function TtdMonitoringPage() {
             <div>
               <h4 className="text-xs font-black text-gray-900 uppercase tracking-wider">Tips Minum Terbaik</h4>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Minumlah TTD pada **malam hari sebelum tidur** untuk meminimalisir rasa mual atau pusing setelah konsumsi obat.
+                Minumlah TTD pada <span className="font-bold">malam hari sebelum tidur</span> untuk meminimalisir rasa mual atau pusing setelah konsumsi obat.
               </p>
             </div>
           </div>
@@ -282,13 +277,12 @@ export default function TtdMonitoringPage() {
             <div>
               <h4 className="text-xs font-black text-red-700 uppercase tracking-wider">⚠️ Pantangan Konsumsi</h4>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                **Jangan** minum TTD bersama kopi, teh, susu, atau obat maag karena dapat mengikat zat besi sehingga tidak diserap tubuh.
+                <span className="font-bold">Jangan</span> minum TTD bersama kopi, teh, susu, atau obat maag karena dapat mengikat zat besi sehingga tidak diserap tubuh.
               </p>
             </div>
           </div>
         </div>
 
-        {/* Interactive Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex items-center gap-4">
             <div className="h-12 w-12 bg-pink-50 text-pink-500 rounded-2xl flex items-center justify-center shrink-0">
@@ -323,7 +317,6 @@ export default function TtdMonitoringPage() {
           </div>
         </div>
 
-        {/* Companion / Husband Input Form */}
         <div className="bg-white p-6 md:p-8 rounded-[40px] shadow-sm border border-pink-50">
           <div className="flex items-center gap-3 mb-6">
             <div className="h-10 w-10 bg-pink-50 rounded-xl flex items-center justify-center text-pink-500">
@@ -389,7 +382,6 @@ export default function TtdMonitoringPage() {
           </form>
         </div>
 
-        {/* Month Selector & Interactive Monthly Grid */}
         {profile.status === 'melahirkan' ? (
           <div className="bg-white rounded-[40px] border border-pink-50 shadow-sm p-8 text-center flex flex-col items-center justify-center space-y-6">
             <span className="text-7xl animate-bounce">👶🎉🥳</span>
@@ -416,8 +408,7 @@ export default function TtdMonitoringPage() {
                 <h3 className="text-xl font-black text-gray-900">Kartu Pemantauan Bulanan</h3>
                 <p className="text-xs text-gray-400">Silakan pilih bulan kehamilan dan centang hari saat Anda meminum TTD.</p>
               </div>
-              
-              {/* Navigation Slider */}
+
               <div className="flex items-center gap-3">
                 <button
                   type="button"
@@ -444,7 +435,7 @@ export default function TtdMonitoringPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Left side: Month & Info */}
+              
               <div className="space-y-6">
                 <div className="p-6 bg-pink-50/30 rounded-3xl border border-pink-100/50 space-y-4">
                   <span className="text-[10px] font-black text-pink-500 uppercase tracking-widest block">Pengaturan Bulan</span>
@@ -481,7 +472,6 @@ export default function TtdMonitoringPage() {
                 </div>
               </div>
 
-              {/* Right side: 31-Day Checkbox Calendar Grid */}
               <div className="md:col-span-2 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-black text-gray-400 uppercase tracking-wider">Lembar Kalender Harian</span>

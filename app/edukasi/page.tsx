@@ -8,6 +8,9 @@ import {
   ShieldAlert, 
   ArrowLeft, 
   ChevronRight, 
+  ChevronLeft,
+  ChevronDown,
+  ChevronUp,
   CheckCircle2, 
   Clock,
   Waves,
@@ -167,110 +170,215 @@ const modules = [
 
 export default function EdukasiPage() {
   const [activeModule, setActiveModule] = useState(modules[0]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const activeIndex = modules.findIndex(m => m.id === activeModule.id);
 
   return (
-    <div className="min-h-screen bg-white font-sans">
-      
-      {/* Header */}
+    <div className="min-h-screen bg-white font-sans pb-16 animate-fade-in-up">
+
       <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-           <Link href="/" className="flex items-center gap-2 text-gray-500 hover:text-pink-500 transition-all">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-center relative">
+          <div className="absolute left-6">
+            <Link 
+              href="/" 
+              className="h-10 w-10 bg-white border border-gray-150 rounded-xl flex items-center justify-center hover:bg-gray-50 text-gray-500 hover:text-pink-500 transition-all shadow-sm shrink-0"
+              title="Kembali"
+            >
               <ArrowLeft className="w-5 h-5" />
-              <span className="text-sm font-bold">Kembali</span>
-           </Link>
-           <div className="flex items-center gap-2">
-              <BookOpen className="text-pink-500 w-6 h-6" />
-              <h1 className="text-xl font-black text-gray-900 tracking-tight">Katalog Edukasi KIA</h1>
+            </Link>
+          </div>
+          <div className="flex items-center gap-2">
+            <BookOpen className="text-pink-500 w-6 h-6 shrink-0" />
+            <h1 className="text-sm md:text-xl font-black text-gray-900 tracking-tight">Katalog Edukasi KIA</h1>
            </div>
-           <div className="w-20"></div> {/* Spacer */}
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20 flex flex-col lg:flex-row gap-16">
-        
-        {/* Navigation Sidebar */}
-        <aside className="lg:w-80 shrink-0 space-y-4">
-          <div className="p-6 bg-pink-50 rounded-3xl border border-pink-100 mb-8">
-             <p className="text-xs font-black text-pink-500 uppercase tracking-widest mb-2">Kurikulum</p>
-             <h2 className="text-lg font-bold text-gray-900 leading-tight">Materi Resmi KIA 2024</h2>
-          </div>
-          
-          <div className="space-y-2">
-            {modules.map((m) => (
+      <div className="max-w-7xl mx-auto px-6 py-8 md:py-12">
+
+        <div className="lg:hidden relative w-full mb-8">
+          <button
+            type="button"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="w-full flex items-center justify-between p-4 bg-gray-900 text-white rounded-3xl border border-gray-800 shadow-xl shadow-gray-200/50 transition-all hover:bg-gray-800 active:scale-[0.99] text-left"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className={`h-11 w-11 ${activeModule.color} rounded-2xl flex items-center justify-center text-white shrink-0`}>
+                <activeModule.icon className="w-5.5 h-5.5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase opacity-60 tracking-wider">Modul Terpilih</p>
+                <h3 className="text-sm font-black mt-0.5 leading-tight">{activeModule.title}</h3>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-white/10 rounded-full">
+                {activeIndex + 1}/{modules.length}
+              </span>
+              {isDropdownOpen ? <ChevronUp className="w-4 h-4 text-pink-400" /> : <ChevronDown className="w-4 h-4 text-pink-400" />}
+            </div>
+          </button>
+
+          {isDropdownOpen && (
+            <>
+              <div className="fixed inset-0 z-40 bg-black/5" onClick={() => setIsDropdownOpen(false)} />
+              <div className="absolute top-[72px] left-0 right-0 z-50 bg-white border border-gray-100 rounded-[28px] p-2.5 shadow-2xl space-y-1 animate-in slide-in-from-top-3 duration-250 max-h-[300px] overflow-y-auto">
+                {modules.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveModule(m);
+                      setIsDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3.5 p-3 rounded-2xl transition-all border text-left ${
+                      activeModule.id === m.id 
+                      ? 'bg-pink-50 text-pink-600 border-pink-100/50 font-bold shadow-sm' 
+                      : 'bg-white text-gray-600 border-transparent hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className={`h-9 w-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      activeModule.id === m.id ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      <m.icon className="w-4.5 h-4.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[8px] font-black uppercase opacity-60">Modul {m.id}</p>
+                      <p className="text-xs font-bold truncate">{m.title}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-16 items-start">
+
+          <aside className="hidden lg:block w-full lg:w-80 shrink-0 space-y-4">
+            <div className="p-6 bg-pink-50 rounded-3xl border border-pink-100 mb-8">
+               <p className="text-xs font-black text-pink-500 uppercase tracking-widest mb-2">Kurikulum</p>
+               <h2 className="text-lg font-bold text-gray-900 leading-tight">Materi Resmi KIA 2024</h2>
+            </div>
+            
+            <div className="space-y-2">
+              {modules.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setActiveModule(m)}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all border ${
+                    activeModule.id === m.id 
+                    ? 'bg-gray-900 text-white border-gray-900 shadow-xl shadow-gray-200' 
+                    : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    activeModule.id === m.id ? 'bg-pink-500' : 'bg-gray-100'
+                  }`}>
+                    <m.icon className={`w-5 h-5 ${activeModule.id === m.id ? 'text-white' : 'text-gray-400'}`} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] font-black uppercase opacity-50">Modul {m.id}</p>
+                    <p className="text-sm font-bold truncate w-40">{m.title}</p>
+                  </div>
+                  <ChevronRight className={`ml-auto w-4 h-4 transition-transform ${activeModule.id === m.id ? 'translate-x-1' : ''}`} />
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          <main className="flex-1 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+            <div className="flex items-center gap-6 pb-8 border-b border-gray-100">
+               <div className={`h-16 w-16 ${activeModule.color} rounded-[24px] flex items-center justify-center text-white shadow-xl`}>
+                  <activeModule.icon className="w-8 h-8" />
+               </div>
+               <div>
+                  <h2 className="text-2xl md:text-4xl font-black text-gray-900 tracking-tight">{activeModule.title}</h2>
+                  <p className="text-gray-400 text-xs md:text-sm font-medium">Lengkap berdasarkan standar resmi Buku KIA.</p>
+               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {activeModule.sections.map((section, idx) => (
+                <div key={idx} className="bg-gray-50/50 p-6 md:p-8 rounded-[40px] border border-gray-100 space-y-6 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all">
+                  <h3 className="text-lg md:text-xl font-black text-gray-900 flex items-center gap-3">
+                    <span className="h-2 w-2 rounded-full bg-pink-500 shrink-0"></span>
+                    {section.title}
+                  </h3>
+                  <ul className="space-y-4">
+                    {section.content.map((point, pIdx) => (
+                      <li key={pIdx} className="flex gap-4">
+                        <div className="h-6 w-6 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
+                           <CheckCircle2 className="w-4 h-4 text-green-500" />
+                        </div>
+                        <p className="text-xs md:text-sm text-gray-600 leading-relaxed font-medium">{point}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-gray-900 p-8 md:p-10 rounded-[40px] text-white relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-8 opacity-20 transition-transform group-hover:scale-110 duration-700">
+                 <Info className="w-32 h-32" />
+              </div>
+              <div className="relative z-10 space-y-4 max-w-lg">
+                 <div className="flex items-center gap-2 text-pink-400 font-black text-xs uppercase tracking-widest">
+                    <Clock className="w-4 h-4" /> Tips Penting
+                 </div>
+                 <h4 className="text-xl md:text-2xl font-black">Pastikan Suami Terlibat.</h4>
+                 <p className="text-gray-400 text-xs md:text-sm leading-relaxed font-medium">
+                    Keberhasilan 1000 HPK dan kesehatan mental Ibu sangat bergantung pada dukungan lingkungan terdekat. Pelajari modul ini bersama pasangan Anda.
+                 </p>
+              </div>
+            </div>
+
+            <div className="flex flex-row justify-between items-center gap-3 pt-8 border-t border-gray-100 w-full">
               <button
-                key={m.id}
-                onClick={() => setActiveModule(m)}
-                className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all border ${
-                  activeModule.id === m.id 
-                  ? 'bg-gray-900 text-white border-gray-900 shadow-xl shadow-gray-200' 
-                  : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50'
+                type="button"
+                onClick={() => {
+                  if (activeIndex > 0) {
+                    setActiveModule(modules[activeIndex - 1]);
+                  }
+                }}
+                disabled={activeIndex === 0}
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-3.5 rounded-2xl font-bold text-[10px] sm:text-xs md:text-sm border shadow-sm transition-all active:scale-98 ${
+                  activeIndex === 0
+                    ? 'bg-gray-50 border-gray-150 text-gray-300 cursor-not-allowed opacity-55'
+                    : 'bg-white border-gray-205 text-gray-700 hover:border-pink-300 hover:text-pink-600'
                 }`}
               >
-                <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
-                  activeModule.id === m.id ? 'bg-pink-500' : 'bg-gray-100'
-                }`}>
-                  <m.icon className={`w-5 h-5 ${activeModule.id === m.id ? 'text-white' : 'text-gray-400'}`} />
-                </div>
-                <div className="text-left">
-                  <p className="text-[10px] font-black uppercase opacity-50">Modul {m.id}</p>
-                  <p className="text-sm font-bold truncate w-40">{m.title}</p>
-                </div>
-                <ChevronRight className={`ml-auto w-4 h-4 transition-transform ${activeModule.id === m.id ? 'translate-x-1' : ''}`} />
+                <ChevronLeft className="w-4 h-4 shrink-0" />
+                <span className="truncate">Sebelumnya</span>
               </button>
-            ))}
-          </div>
-        </aside>
 
-        {/* Content Area */}
-        <main className="flex-1 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex items-center gap-6 pb-8 border-b border-gray-100">
-             <div className={`h-16 w-16 ${activeModule.color} rounded-[24px] flex items-center justify-center text-white shadow-xl`}>
-                <activeModule.icon className="w-8 h-8" />
-             </div>
-             <div>
-                <h2 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tight">{activeModule.title}</h2>
-                <p className="text-gray-400 font-medium">Lengkap berdasarkan standar resmi Buku KIA.</p>
-             </div>
-          </div>
+              <span className="hidden sm:inline-block text-xs font-black text-gray-400 uppercase tracking-widest text-center shrink-0">
+                {activeIndex + 1} dari {modules.length} Modul
+              </span>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {activeModule.sections.map((section, idx) => (
-              <div key={idx} className="bg-gray-50/50 p-8 rounded-[40px] border border-gray-100 space-y-6 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all">
-                <h3 className="text-xl font-black text-gray-900 flex items-center gap-3">
-                  <span className="h-2 w-2 rounded-full bg-pink-500"></span>
-                  {section.title}
-                </h3>
-                <ul className="space-y-4">
-                  {section.content.map((point, pIdx) => (
-                    <li key={pIdx} className="flex gap-4">
-                      <div className="h-6 w-6 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0">
-                         <CheckCircle2 className="w-4 h-4 text-green-500" />
-                      </div>
-                      <p className="text-sm text-gray-600 leading-relaxed font-medium">{point}</p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          {/* Tips Overlay */}
-          <div className="bg-gray-900 p-10 rounded-[40px] text-white relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-8 opacity-20 transition-transform group-hover:scale-110 duration-700">
-               <Info className="w-32 h-32" />
+              <button
+                type="button"
+                onClick={() => {
+                  if (activeIndex < modules.length - 1) {
+                    setActiveModule(modules[activeIndex + 1]);
+                  }
+                }}
+                disabled={activeIndex === modules.length - 1}
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-3.5 rounded-2xl font-bold text-[10px] sm:text-xs md:text-sm border shadow-sm transition-all active:scale-98 ${
+                  activeIndex === modules.length - 1
+                    ? 'bg-gray-50 border-gray-150 text-gray-300 cursor-not-allowed opacity-55'
+                    : 'bg-gray-900 border-gray-900 text-white hover:bg-pink-600 hover:border-pink-600 shadow-lg shadow-pink-100'
+                }`}
+              >
+                <span className="truncate">Selanjutnya</span>
+                <ChevronRight className="w-4 h-4 shrink-0" />
+              </button>
             </div>
-            <div className="relative z-10 space-y-4 max-w-lg">
-               <div className="flex items-center gap-2 text-pink-400 font-black text-xs uppercase tracking-widest">
-                  <Clock className="w-4 h-4" /> Tips Penting
-               </div>
-               <h4 className="text-2xl font-black">Pastikan Suami Terlibat.</h4>
-               <p className="text-gray-400 text-sm leading-relaxed font-medium">
-                  Keberhasilan 1000 HPK dan kesehatan mental Ibu sangat bergantung pada dukungan lingkungan terdekat. Pelajari modul ini bersama pasangan Anda.
-               </p>
-            </div>
-          </div>
-        </main>
+          </main>
 
+        </div>
       </div>
     </div>
   );

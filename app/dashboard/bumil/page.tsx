@@ -26,12 +26,12 @@ import {
   Droplets,
   LogOut,
   Home,
-  BarChart3
+  BarChart3,
+  BookOpen
 } from 'lucide-react';
 import { bumilApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
-// Helper to calculate gestational age dynamically
 const getPregnancyAge = (hpht: string, hpl: string) => {
   if (!hpht && !hpl) return "Belum Ditentukan";
   
@@ -57,7 +57,6 @@ const getPregnancyAge = (hpht: string, hpl: string) => {
   return `${weeks} Minggu ${days} Hari`;
 };
 
-// Helper to calculate last 7 calendar days & map to pregnancy month/day
 const getLast7Days = (hpl: string) => {
   const list = [];
   const today = new Date();
@@ -114,7 +113,7 @@ export default function BumilDashboard() {
     if (!user) {
       router.push('/login');
     } else if (user.role !== 'bumil') {
-      router.push('/dashboard/bidan');
+      router.push('/dashboard/admin');
     } else {
       fetchProfile();
     }
@@ -124,7 +123,6 @@ export default function BumilDashboard() {
   const handleToggleDashboardDay = async (item: any) => {
     if (!profile) return;
 
-    // Check if the day is before registration date
     const regDate = new Date(profile.created_at);
     regDate.setHours(0,0,0,0);
     const actualDate = new Date(item.actualDate);
@@ -183,7 +181,6 @@ export default function BumilDashboard() {
     );
   }
 
-  // Dynamic Target Calculation
   const getDynamicTarget = (createdAt: string, hpl: string) => {
     if (!createdAt || !hpl) return 180;
     const regDate = new Date(createdAt);
@@ -204,25 +201,33 @@ export default function BumilDashboard() {
   const last7DaysList = getLast7Days(profile.hpl);
 
   return (
-    <div className="min-h-screen bg-pink-50 p-4 md:p-8 font-sans pb-24">
+    <div className="min-h-screen bg-pink-50 p-4 md:p-8 font-sans pb-24 animate-fade-in-up">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Top Navbar for Bumil */}
-        <div className="flex items-center justify-between">
-           <Link href="/" className="flex items-center gap-2 text-pink-500 font-bold hover:opacity-80 transition-all">
-              <Home className="w-5 h-5" />
-              <span>Kembali ke Beranda</span>
-           </Link>
-           <button 
-              onClick={logout}
-              className="flex items-center gap-2 text-gray-400 hover:text-red-500 font-bold transition-all text-sm"
-           >
-              <LogOut className="w-5 h-5" />
-              Keluar
-           </button>
+        <div className="flex items-center justify-between bg-white px-6 py-4 rounded-3xl shadow-sm border border-pink-100/50">
+          <div className="flex items-center gap-6">
+            <Link href="/dashboard/bumil" className="flex items-center gap-2 text-pink-500 font-bold hover:opacity-80 transition-all text-sm">
+              <Home className="w-4 h-4 text-pink-500" />
+              <span>Dashboard</span>
+            </Link>
+            <Link href="/fitur" className="flex items-center gap-2 text-gray-600 hover:text-pink-500 font-bold transition-all text-sm">
+              <Activity className="w-4 h-4 text-pink-400" />
+              <span>Fitur Aplikasi</span>
+            </Link>
+            <Link href="/edukasi" className="flex items-center gap-2 text-gray-600 hover:text-pink-500 font-bold transition-all text-sm">
+              <BookOpen className="w-4 h-4 text-pink-400" />
+              <span>Edukasi KIA</span>
+            </Link>
+          </div>
+          <button 
+            onClick={logout}
+            className="flex items-center gap-2 text-gray-400 hover:text-red-500 font-bold transition-all text-sm"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Keluar</span>
+          </button>
         </div>
 
-        {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[40px] shadow-sm border border-pink-100">
           <div className="flex items-center gap-5">
             <div className="md:h-20 md:w-20 h-14 w-14 bg-gradient-to-br from-pink-400 to-pink-600 rounded-full flex items-center justify-center shadow-xl shadow-pink-200">
@@ -252,7 +257,6 @@ export default function BumilDashboard() {
           </div>
         </div>
 
-        {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
           <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-[32px] shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-3 md:gap-4 text-center md:text-left">
             <div className="h-10 w-10 md:h-14 md:w-14 bg-blue-50 text-blue-500 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
@@ -340,7 +344,6 @@ export default function BumilDashboard() {
           </div>
         </div>
 
-        {/* Charts Section */}
         {medicalHistory.length === 0 ? (
           <div className="bg-white p-8 md:p-12 rounded-[40px] shadow-sm border border-pink-100 flex flex-col items-center justify-center text-center py-16 space-y-4">
             <div className="h-16 w-16 bg-pink-50 rounded-full flex items-center justify-center text-pink-500 shadow-inner">
@@ -417,7 +420,6 @@ export default function BumilDashboard() {
           </div>
         )}
 
-        {/* Bottom Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
           <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] shadow-sm border border-pink-50 flex flex-col justify-between">
             {profile.status === 'melahirkan' ? (
@@ -440,7 +442,7 @@ export default function BumilDashboard() {
                       Tablet Tambah Darah
                     </h3>
                     <Link href="/dashboard/bumil/ttd" className="text-xs font-bold text-pink-500 hover:text-pink-600 transition-colors flex items-center gap-1.5 bg-pink-50 px-3 py-1.5 rounded-full border border-pink-100">
-                      Detail & Isi Buku KIA Hal 7 →
+                      History Minum TTD →
                     </Link>
                   </div>
 

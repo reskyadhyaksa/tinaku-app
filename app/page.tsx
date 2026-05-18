@@ -35,11 +35,35 @@ export default function LandingPage() {
     return () => clearInterval(timer);
   }, [photos.length]);
 
+  useEffect(() => {
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px 0px -10% 0px',
+      threshold: 0.05
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-fade-in-up');
+          entry.target.classList.remove('opacity-0');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, observerOptions);
+
+    const elements = document.querySelectorAll('.scroll-reveal');
+    elements.forEach((el) => observer.observe(el));
+
+    return () => {
+      elements.forEach((el) => observer.unobserve(el));
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-white font-sans selection:bg-pink-100 selection:text-pink-600">
-      
-      {/* Navigation Bar */}
-      <nav className="fixed top-0 left-0 right-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-gray-100">
+
+      <nav className="fixed top-0 left-0 right-0 z-[100] bg-white/80 backdrop-blur-xl border-b border-gray-100 animate-fade-in-down">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="h-10 w-10 bg-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-pink-200">
@@ -49,7 +73,7 @@ export default function LandingPage() {
           </div>
           
           <div className="hidden lg:flex items-center gap-8">
-            <Link href="#fitur" className="text-sm font-bold text-gray-500 hover:text-pink-500 transition-colors">Fitur</Link>
+            <Link href="/fitur" className="text-sm font-bold text-gray-500 hover:text-pink-500 transition-colors">Fitur</Link>
             <Link href="/edukasi" className="text-sm font-bold text-gray-500 hover:text-pink-500 transition-colors">Edukasi KIA</Link>
             <Link href="#tentang" className="text-sm font-bold text-gray-500 hover:text-pink-500 transition-colors">Tentang Kami</Link>
           </div>
@@ -62,7 +86,7 @@ export default function LandingPage() {
                   <span className="text-sm font-bold text-gray-900">{user.name}</span>
                 </div>
                 <Link 
-                  href={(user.role === 'bidan' || user.role === 'dokter' || user.role === 'superadmin') ? '/dashboard/bidan' : '/dashboard/bumil'} 
+                  href={(user.role === 'bidan' || user.role === 'dokter' || user.role === 'superadmin') ? '/dashboard/admin' : '/dashboard/bumil'} 
                   className="hidden sm:flex px-6 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-full shadow-lg hover:bg-pink-600 transition-all"
                 >
                   Dashboard
@@ -92,7 +116,6 @@ export default function LandingPage() {
               </div>
             )}
 
-            {/* Mobile Menu Toggle */}
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="lg:hidden p-2.5 bg-gray-50 text-gray-900 rounded-xl hover:bg-pink-50 hover:text-pink-500 transition-all"
@@ -102,12 +125,11 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Mobile Dropdown Menu */}
         {isMenuOpen && (
           <div className="lg:hidden bg-white border-t border-gray-100 animate-in slide-in-from-top duration-300">
             <div className="p-6 space-y-6">
               <div className="flex flex-col gap-4">
-                <Link onClick={() => setIsMenuOpen(false)} href="#fitur" className="text-lg font-bold text-gray-900">Fitur Utama</Link>
+                <Link onClick={() => setIsMenuOpen(false)} href="/fitur" className="text-lg font-bold text-gray-900">Fitur Utama</Link>
                 <Link onClick={() => setIsMenuOpen(false)} href="/edukasi" className="text-lg font-bold text-gray-900">Edukasi KIA</Link>
                 <Link onClick={() => setIsMenuOpen(false)} href="#tentang" className="text-lg font-bold text-gray-900">Tentang Kami</Link>
               </div>
@@ -126,7 +148,7 @@ export default function LandingPage() {
                     </div>
                     <Link 
                       onClick={() => setIsMenuOpen(false)}
-                      href={(user.role === 'bidan' || user.role === 'dokter' || user.role === 'superadmin') ? '/dashboard/bidan' : '/dashboard/bumil'} 
+                      href={(user.role === 'bidan' || user.role === 'dokter' || user.role === 'superadmin') ? '/dashboard/admin' : '/dashboard/bumil'} 
                       className="w-full py-4 bg-gray-900 text-white text-center font-bold rounded-2xl shadow-lg"
                     >
                       Buka Dashboard
@@ -150,36 +172,35 @@ export default function LandingPage() {
         )}
       </nav>
 
-      {/* Hero Section */}
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
         <div className="absolute top-0 right-0 -z-10 w-1/2 h-full bg-pink-50/50 rounded-l-[100px] hidden lg:block"></div>
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div className="space-y-8 animate-in slide-in-from-left duration-700">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-pink-50 text-pink-500 rounded-full text-xs font-black uppercase tracking-widest border border-pink-100">
+          <div className="space-y-8 animate-fade-in-up">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-pink-50 text-pink-500 rounded-full text-xs font-black uppercase tracking-widest border border-pink-100 hero-badge">
               <ShieldCheck className="w-4 h-4" /> Pendamping Digital Ibu Hamil
             </div>
-            <h1 className="text-3xl md:text-7xl font-black text-gray-900 leading-[1.2] tracking-tight">
+            <h1 className="text-3xl md:text-7xl font-black text-gray-900 leading-[1.2] tracking-tight hero-title">
               Kawal Kehamilan <br/>
               <span className="text-pink-500 text-2xl md:text-6xl">Lebih Aman & Pintar.</span>
             </h1>
-            <p className="text-lg text-gray-500 leading-relaxed max-w-lg">
+            <p className="text-lg text-gray-500 leading-relaxed max-w-lg hero-desc">
               TINAKU hadir untuk membantu Ibu Hamil memantau kesehatan janin secara mandiri dan terhubung langsung dengan Bidan Puskesmas secara real-time.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+            <div className="flex flex-col sm:flex-row gap-4 pt-4 hero-btns">
               <Link 
-                href={user ? ((user.role === 'bidan' || user.role === 'dokter' || user.role === 'superadmin') ? '/dashboard/bidan' : '/dashboard/bumil') : '/register'} 
+                href={user ? ((user.role === 'bidan' || user.role === 'dokter' || user.role === 'superadmin') ? '/dashboard/admin' : '/dashboard/bumil') : '/register'} 
                 className="group flex items-center justify-center gap-3 bg-gray-900 text-white px-8 py-5 rounded-2xl font-bold shadow-2xl hover:bg-pink-600 transition-all"
               >
                 {user ? 'Buka Dashboard Saya' : 'Mulai Pendaftaran'} <ArrowRight className="group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link 
-                href="#fitur" 
+                href="/fitur" 
                 className="flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-700 px-8 py-5 rounded-2xl font-bold hover:bg-gray-50 transition-all"
               >
                 Pelajari Fitur
               </Link>
             </div>
-            <div className="flex items-center gap-6 pt-8 border-t border-gray-100">
+            <div className="flex items-center gap-6 pt-8 border-t border-gray-100 hero-stats">
               <div className="flex -space-x-4">
                 {[1,2,3,4].map(i => (
                   <div key={i} className="h-12 w-12 rounded-full border-4 border-white bg-pink-100 flex items-center justify-center text-pink-500 font-bold text-xs">
@@ -193,13 +214,17 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="relative animate-in zoom-in duration-1000 delay-200">
+          <div className="relative animate-fade-in-up [animation-delay:100ms]">
             <div className="relative z-10 bg-white p-4 rounded-[40px] shadow-2xl shadow-pink-200/50 border border-pink-100">
-              {/* Image Placeholder */}
+              
               <div className="bg-pink-50 rounded-[30px] h-[400px] md:h-[500px] w-full flex items-center justify-center relative overflow-hidden group">
-                 <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-transparent"></div>
-                 <Activity className="w-32 h-32 text-pink-200 group-hover:scale-110 transition-transform duration-700" />
-                 <div className="absolute bottom-8 left-8 right-8 bg-white/90 backdrop-blur p-6 rounded-3xl shadow-xl border border-white/50">
+                 <img 
+                   src="/hero_bumil.png" 
+                   alt="Kawal Kehamilan TINAKU"
+                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                 />
+                 <div className="absolute inset-0 bg-gradient-to-t from-pink-900/10 via-transparent to-transparent"></div>
+                 <div className="absolute bottom-8 left-8 right-8 bg-white/90 backdrop-blur p-6 rounded-3xl shadow-xl border border-white/50 animate-in fade-in duration-1000">
                     <div className="flex items-center justify-between mb-2">
                        <span className="text-xs font-black text-pink-500 uppercase tracking-widest">Kondisi Klinis</span>
                        <span className="text-xs font-bold text-green-500">Normal</span>
@@ -210,27 +235,26 @@ export default function LandingPage() {
                  </div>
               </div>
             </div>
-            {/* Floating Elements */}
-            <div className="absolute -top-10 -right-10 bg-white p-6 rounded-3xl shadow-xl border border-pink-50 animate-bounce duration-[3000ms] hidden md:block">
+            
+            <div className="absolute -top-10 -right-10 bg-white p-6 rounded-3xl shadow-xl border border-pink-50 animate-bounce duration-[3000ms] hidden md:block hero-floating">
               <Users className="text-pink-500 w-8 h-8" />
             </div>
-            <div className="absolute -bottom-10 -left-10 bg-white p-6 rounded-3xl shadow-xl border border-pink-50 animate-pulse hidden md:block">
+            <div className="absolute -bottom-10 -left-10 bg-white p-6 rounded-3xl shadow-xl border border-pink-50 animate-pulse hidden md:block hero-floating">
               <MapPin className="text-pink-500 w-8 h-8" />
             </div>
           </div>
         </div>
       </section>
 
-      {/* 1000 HPK Campaign Section */}
-      <section className="py-24 bg-white overflow-hidden">
+      <section className="py-24 bg-white overflow-hidden hpk-section">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="relative">
               <div className="absolute -top-10 -left-10 w-64 h-64 bg-pink-100 rounded-full blur-3xl opacity-50"></div>
-              <div className="relative z-10 bg-gradient-to-br from-pink-500 to-rose-600 p-12 rounded-[50px] text-white shadow-2xl">
+              <div className="relative z-10 bg-gradient-to-br from-pink-500 to-rose-600 p-12 rounded-[50px] text-white shadow-2xl hpk-card scroll-reveal opacity-0">
                 <h3 className="text-3xl md:text-5xl font-black mb-6 leading-tight">1000 <br/><span className="text-pink-200 text-xl md:text-3xl">Hari Pertama</span> Kehidupan</h3>
                 <p className="text-lg text-pink-50 leading-relaxed font-medium mb-8">
-                  Masa paling krusial dalam pertumbuhan anak. Mencakup <span className="font-black text-white underline decoration-pink-300">270 hari</span> dalam kandungan dan <span className="font-black text-white underline decoration-pink-300">730 hari</span> pertama setelah lahir.
+                  Masa paling krusial dalam pertumbuhan anak. Mencakup <span className="font-black text-white underline decoration-pink-300">270 hari</span> dalam kandungan and <span className="font-black text-white underline decoration-pink-300">730 hari</span> pertama setelah lahir.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                   <div className="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20">
@@ -244,7 +268,7 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
-            <div className="space-y-8">
+            <div className="space-y-8 hpk-text-content scroll-reveal opacity-0">
               <h2 className="text-xs font-black text-pink-500 uppercase tracking-[0.2em]">Pentingnya Nutrisi & Stimulasi</h2>
               <h3 className="text-4xl font-black text-gray-900 leading-tight tracking-tight">Investasi Terbaik untuk <span className="text-pink-500">Masa Depan</span> Buah Hati.</h3>
               <p className="text-gray-500 text-lg leading-relaxed">
@@ -263,8 +287,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Standar Pemeriksaan Section */}
-      <section className="py-24 bg-gray-900 text-white relative overflow-hidden">
+      <section className="py-24 bg-gray-900 text-white relative overflow-hidden pemeriksaan-section">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-pink-500/10 skew-x-12 translate-x-20"></div>
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
@@ -274,29 +297,28 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="p-10 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-sm">
+            <div className="p-10 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-sm pemeriksaan-card scroll-reveal opacity-0">
               <div className="text-5xl font-black text-pink-500 mb-4">1x</div>
               <h4 className="text-xl font-bold mb-2">Trimester 1</h4>
               <p className="text-sm text-gray-400 font-medium">Usia kehamilan 0-12 minggu. Fokus pada pembentukan janin.</p>
             </div>
-            <div className="p-10 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-sm">
+            <div className="p-10 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-sm pemeriksaan-card scroll-reveal opacity-0">
               <div className="text-5xl font-black text-pink-500 mb-4">2x</div>
               <h4 className="text-xl font-bold mb-2">Trimester 2</h4>
-              <p className="text-sm text-gray-400 font-medium">Usia kehamilan 13-28 minggu. Ibu mulai merasakan gerakan.</p>
+              <p className="text-sm text-gray-400 font-medium">Usia kehamilan 12-24 minggu. Ibu mulai merasakan gerakan.</p>
             </div>
-            <div className="p-10 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-sm">
+            <div className="p-10 bg-white/5 rounded-[40px] border border-white/10 backdrop-blur-sm pemeriksaan-card scroll-reveal opacity-0">
               <div className="text-5xl font-black text-pink-500 mb-4">3x</div>
               <h4 className="text-xl font-bold mb-2">Trimester 3</h4>
-              <p className="text-sm text-gray-400 font-medium">Usia kehamilan 29-40 minggu. Persiapan persalinan matang.</p>
+              <p className="text-sm text-gray-400 font-medium">Usia kehamilan 24-40 minggu. Persiapan persalinan matang.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Emergency Hotline Section */}
-      <section className="py-24 bg-rose-50">
+      <section className="py-24 bg-rose-50 hotline-section">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="bg-white rounded-[50px] p-8 md:p-16 shadow-2xl shadow-rose-200/50 border border-rose-100 overflow-hidden relative">
+          <div className="bg-white rounded-[50px] p-8 md:p-16 shadow-2xl shadow-rose-200/50 border border-rose-100 overflow-hidden relative hotline-card scroll-reveal opacity-0">
             <div className="absolute top-0 right-0 p-8 opacity-10">
               <Activity className="w-64 h-64 text-rose-500" />
             </div>
@@ -341,13 +363,12 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Profil Inovator Section */}
-      <section id="tentang" className="py-24 bg-white relative overflow-hidden border-t border-gray-100">
+      <section id="tentang" className="py-24 bg-white relative overflow-hidden border-t border-gray-100 inovator-section">
         <div className="absolute top-0 left-0 w-1/3 h-full bg-pink-50/30 skew-x-12 -translate-x-20"></div>
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            {/* Carousel Section */}
-            <div className="relative group rounded-[40px] overflow-hidden shadow-2xl shadow-pink-100/50 border border-pink-50 bg-pink-50">
+            
+            <div className="relative group rounded-[40px] overflow-hidden shadow-2xl shadow-pink-100/50 border border-pink-50 bg-pink-50 inovator-photo scroll-reveal opacity-0">
               <div 
                 className="flex transition-transform duration-700 ease-in-out h-[400px] md:h-[600px]"
                 style={{ transform: `translateX(-${currentSlide * 100}%)` }}
@@ -363,8 +384,7 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              
-              {/* Carousel Controls */}
+
               <div className="absolute inset-x-0 bottom-8 flex justify-center items-center gap-4">
                 <button 
                   type="button"
@@ -393,8 +413,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Inovator Info */}
-            <div className="space-y-8 animate-in slide-in-from-right duration-700">
+            <div className="space-y-8 inovator-details scroll-reveal opacity-0">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-pink-50 text-pink-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-pink-100">
                 <Heart className="w-4 h-4 fill-current" /> Inovator TINAKU
               </div>
@@ -421,7 +440,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer Info */}
       <footer className="bg-gray-900 text-white py-20">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-16">
           <div className="space-y-6">

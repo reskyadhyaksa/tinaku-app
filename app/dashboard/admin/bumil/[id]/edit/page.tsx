@@ -157,7 +157,7 @@ export default function EditBumilPage() {
       }
     } catch (error) {
       toast.error('Gagal mengambil data ibu hamil');
-      router.push('/dashboard/bidan/bumil');
+      router.push('/dashboard/admin/bumil');
     } finally {
       setIsFetching(false);
     }
@@ -233,7 +233,7 @@ export default function EditBumilPage() {
 
       await bumilApi.update(id as string, payload);
       toast.success('Data Ibu Hamil berhasil diperbarui!');
-      router.push('/dashboard/bidan/bumil');
+      router.push('/dashboard/admin/bumil');
     } catch (error) {
       toast.error('Gagal memperbarui data.');
     } finally {
@@ -250,7 +250,7 @@ export default function EditBumilPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-6 md:px-8 md:py-6 rounded-3xl shadow-sm border border-pink-50">
           <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/dashboard/bidan/bumil')} className="h-10 w-10 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm shrink-0">
+            <button onClick={() => router.push('/dashboard/admin/bumil')} className="h-10 w-10 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm shrink-0">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </button>
             <div>

@@ -30,7 +30,7 @@ export default function BidanDetailPage() {
     if (!user) {
       router.push('/login');
     } else if (user.role !== 'superadmin') {
-      router.push('/dashboard/bidan');
+      router.push('/dashboard/admin');
     } else {
       fetchUserDetail();
     }
@@ -44,7 +44,7 @@ export default function BidanDetailPage() {
         setTargetUser(found);
       } else {
         toast.error('User tidak ditemukan');
-        router.push('/bidan');
+        router.push('/dashboard/admin/bidan');
       }
     } catch (error) {
       toast.error('Gagal mengambil data detail');
@@ -63,7 +63,7 @@ export default function BidanDetailPage() {
         {/* Back Button & Header */}
         <div className="flex items-center justify-between bg-white p-6 rounded-3xl shadow-sm border border-pink-50">
           <div className="flex items-center gap-4">
-            <Link href="/bidan" className="h-10 w-10 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm shrink-0">
+            <Link href="/dashboard/admin/bidan" className="h-10 w-10 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm shrink-0">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </Link>
             <div>

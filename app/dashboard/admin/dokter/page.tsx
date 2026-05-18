@@ -33,7 +33,7 @@ export default function UserDokterPage() {
 
   useEffect(() => {
     if (!user || user.role !== 'superadmin') {
-      router.push('/dashboard/bidan');
+      router.push('/dashboard/admin');
     } else {
       fetchUsers();
     }
@@ -75,61 +75,61 @@ export default function UserDokterPage() {
 
   return (
     <div className="min-h-screen bg-pink-50 p-4 md:p-8 font-sans">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-6 md:space-y-8">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-pink-100">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-5 md:p-6 rounded-3xl shadow-sm border border-pink-100">
           <div className="flex items-center gap-4">
-            <div className="h-14 w-14 bg-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-100">
-              <Users className="text-white w-8 h-8" />
+            <div className="h-12 w-12 bg-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-100">
+              <Users className="text-white w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Manajemen Dokter</h1>
-              <p className="text-gray-500 font-medium">Kelola akun dan akses rekan Dokter Spesialis / Umum</p>
+              <h1 className="text-lg md:text-xl font-bold text-gray-900 tracking-tight">Manajemen Dokter</h1>
+              <p className="text-xs md:text-sm text-gray-500 font-medium">Kelola akun dan akses rekan Dokter Spesialis / Umum</p>
             </div>
           </div>
           <button 
             onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center justify-center gap-2 bg-pink-500 text-white px-6 py-4 rounded-2xl font-bold shadow-lg shadow-pink-100 hover:bg-pink-600 transition-all w-full md:w-auto"
+            className="flex items-center justify-center gap-2 bg-pink-500 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-pink-100 hover:bg-pink-600 transition-all w-full md:w-auto text-xs md:text-sm"
           >
-            <UserPlus className="w-5 h-5" />
+            <UserPlus className="w-4 h-4" />
             {showAddForm ? 'Batal' : 'Tambah Dokter Baru'}
           </button>
         </div>
 
         {/* Add Form Section */}
         {showAddForm && (
-          <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-pink-200 animate-in slide-in-from-top duration-300">
-            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-              <ShieldCheck className="text-pink-500" /> Registrasi Akun Dokter
+          <div className="bg-white p-5 md:p-6 rounded-3xl shadow-sm border border-pink-200 animate-in slide-in-from-top duration-300">
+            <h2 className="text-base md:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <ShieldCheck className="text-pink-500 w-5 h-5" /> Registrasi Akun Dokter
             </h2>
             <form onSubmit={handleAddDokter} className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Username</label>
+                <label className="text-xs font-semibold text-gray-700">Username</label>
                 <input 
                   type="text" 
                   value={newDokter.username}
                   onChange={(e) => setNewDokter({...newDokter, username: e.target.value})}
                   required
-                  className="w-full px-4 py-3.5 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                  className="w-full px-4 py-2.5 md:py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-xs md:text-sm"
                   placeholder="Username Dokter"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-700">Password Sementara</label>
+                <label className="text-xs font-semibold text-gray-700">Password Sementara</label>
                 <input 
                   type="password" 
                   value={newDokter.password}
                   onChange={(e) => setNewDokter({...newDokter, password: e.target.value})}
                   required
-                  className="w-full px-4 py-3.5 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all"
+                  className="w-full px-4 py-2.5 md:py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-xs md:text-sm"
                   placeholder="Min. 6 Karakter"
                 />
               </div>
               <div className="flex items-end">
                 <button 
                   type="submit"
-                  className="w-full bg-gray-900 text-white py-3.5 rounded-2xl font-bold hover:bg-gray-800 transition-all"
+                  className="w-full bg-gray-900 text-white py-2.5 md:py-3 rounded-2xl font-bold hover:bg-gray-800 transition-all text-xs md:text-sm"
                 >
                   Daftarkan Dokter
                 </button>
@@ -140,16 +140,16 @@ export default function UserDokterPage() {
 
         {/* Search & List */}
         <div className="bg-white rounded-3xl shadow-sm border border-pink-50 overflow-hidden">
-          <div className="p-6 md:p-8 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <h3 className="font-bold text-gray-900 text-lg">Daftar Rekan Dokter</h3>
-            <div className="relative w-full md:w-72">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <div className="p-4 md:p-5 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <h3 className="font-bold text-gray-900 text-sm md:text-base">Daftar Rekan Dokter</h3>
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input 
                 type="text" 
                 placeholder="Cari username..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:ring-2 focus:ring-pink-200 outline-none"
+                className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-xs focus:ring-2 focus:ring-pink-200 outline-none"
               />
             </div>
           </div>
@@ -159,34 +159,34 @@ export default function UserDokterPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50/50 text-left">
-                  <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Username</th>
-                  <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Spesialisasi</th>
-                  <th className="px-8 py-4 text-xs font-black text-gray-400 uppercase tracking-widest text-right">Status</th>
+                  <th className="px-5 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Username</th>
+                  <th className="px-5 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">Spesialisasi</th>
+                  <th className="px-5 py-3 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filteredDokters.map((d) => (
                   <tr key={d.id} className="hover:bg-pink-50/20 transition-colors">
-                    <td className="px-8 py-6">
+                    <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 bg-pink-100 rounded-xl flex items-center justify-center text-pink-500 font-bold">
+                        <div className="h-8 w-8 bg-pink-100 rounded-lg flex items-center justify-center text-pink-500 font-bold text-xs">
                           {d.username.charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-bold text-gray-900">{d.username}</span>
+                        <span className="font-bold text-xs md:text-sm text-gray-900">{d.username}</span>
                       </div>
                     </td>
-                    <td className="px-8 py-6">
-                      <div className="flex flex-wrap gap-4">
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
+                    <td className="px-5 py-4">
+                      <div className="flex flex-wrap gap-3">
+                        <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-bold text-gray-500">
                           <Briefcase className="w-3 h-3 text-pink-400" /> Dokter Spesialis / Umum
                         </div>
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
+                        <div className="flex items-center gap-1.5 text-[10px] md:text-xs font-bold text-gray-500">
                           <Calendar className="w-3 h-3 text-pink-400" /> Rujukan USG
                         </div>
                       </div>
                     </td>
-                    <td className="px-8 py-6 text-right">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-bold text-green-500 bg-green-50 px-3 py-1 rounded-full border border-green-100">
+                    <td className="px-5 py-4 text-right">
+                      <span className="inline-flex items-center gap-1.5 text-[10px] md:text-xs font-bold text-green-500 bg-green-50 px-2 py-0.5 rounded-full border border-green-100 uppercase tracking-wide">
                         <Activity className="w-3 h-3" /> Aktif
                       </span>
                     </td>

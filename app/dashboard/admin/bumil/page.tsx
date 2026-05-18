@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ChevronLeft,
   User,
+  UserPlus,
   Calendar,
   Trash2,
   LayoutGrid,
@@ -56,10 +57,22 @@ export default function DataBumilPage() {
       setIsLoading(true);
       const res = await bumilApi.getAll({ page: currentPage, limit: currentLimit, search: debouncedSearch });
       const items = res.data.data || (Array.isArray(res.data) ? res.data : []);
+      const tPages = res.data.totalPages || 1;
+      
+      // If the current page is greater than the new total pages, shift page back
+      if (currentPage > tPages && tPages >= 1) {
+        setCurrentPage(tPages);
+        return;
+      }
+      
       setBumils(items);
-      setTotalPages(res.data.totalPages || 1);
-    } catch (error) {
-      toast.error('Gagal mengambil data ibu hamil');
+      setTotalPages(tPages);
+    } catch (error: any) {
+      if (error.response && error.response.status === 404 && currentPage > 1) {
+        setCurrentPage(1);
+      } else {
+        toast.error('Gagal mengambil data ibu hamil');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -71,7 +84,13 @@ export default function DataBumilPage() {
     try {
       await bumilApi.delete(id);
       toast.success('Data berhasil dihapus');
-      fetchBumils(); // Refresh data
+      
+      // If we are deleting the last remaining item on any page > 1, go back to previous page
+      if (bumils.length === 1 && currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+      } else {
+        fetchBumils(); // Refresh data
+      }
     } catch (error) {
       toast.error('Gagal menghapus data');
     }
@@ -84,7 +103,7 @@ export default function DataBumilPage() {
 
   return (
     <div className="min-h-screen bg-pink-50 p-4 md:p-8 font-sans">
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-8">
         
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-pink-100">
@@ -93,12 +112,19 @@ export default function DataBumilPage() {
               <Heart className="text-white w-8 h-8 fill-current" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Data Ibu Hamil</h1>
-              <p className="text-gray-500 font-medium">Kelola dan lengkapi profil Ibu Hamil</p>
+              <h1 className="text-lg md:text-xl font-bold text-gray-900 tracking-tight">Data Ibu Hamil</h1>
+              <p className="text-sm md:text-md text-gray-500 font-medium">Kelola dan lengkapi profil Ibu Hamil</p>
             </div>
           </div>
           
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+            <button 
+              onClick={() => router.push('/dashboard/admin/bumil/tambah')}
+              className="flex items-center justify-center gap-2 bg-pink-500 text-white px-5 py-4 rounded-2xl font-bold shadow-lg shadow-pink-100 hover:bg-pink-600 transition-all w-full sm:w-auto shrink-0 text-sm"
+            >
+              <UserPlus className="w-4 h-4" />
+              Tambah Ibu Hamil
+            </button>
             <div className="relative w-full md:w-80">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input 
@@ -109,7 +135,7 @@ export default function DataBumilPage() {
                 className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-2 focus:ring-pink-200 outline-none transition-all"
               />
             </div>
-            <div className="flex items-center gap-1 bg-gray-50 p-1.5 rounded-2xl border border-gray-100 self-end sm:self-auto">
+            <div className="flex items-center gap-1 bg-gray-50 p-1.5 rounded-2xl border border-gray-100 self-end sm:self-auto shrink-0">
               <button
                 onClick={() => { setViewMode('card'); setCurrentPage(1); }}
                 className={`p-2.5 rounded-xl transition-all ${viewMode === 'card' ? 'bg-white shadow-sm text-pink-500' : 'text-gray-400 hover:text-gray-600'}`}
@@ -134,22 +160,22 @@ export default function DataBumilPage() {
             viewMode === 'card' ? (
               // Card Skeleton Loading
               Array.from({ length: currentLimit }).map((_, i) => (
-                <div key={i} className="bg-white rounded-3xl p-6 shadow-sm border border-pink-50 animate-pulse space-y-5">
+                <div key={i} className="bg-white rounded-[24px] p-4 md:p-5 shadow-sm border border-pink-50 animate-pulse space-y-4 w-full max-w-none">
                   <div className="flex justify-between items-start">
-                    <div className="h-12 w-12 bg-gray-100 rounded-2xl"></div>
-                    <div className="h-6 w-20 bg-amber-50 rounded-full border border-amber-100"></div>
+                    <div className="h-10 w-10 bg-gray-100 rounded-xl"></div>
+                    <div className="h-5 w-16 bg-amber-50 rounded-full border border-amber-100"></div>
                   </div>
                   <div>
-                    <div className="h-5 bg-gray-100 rounded-lg w-3/4 mb-2"></div>
-                    <div className="h-3 bg-gray-100 rounded-lg w-1/2"></div>
+                    <div className="h-4 bg-gray-100 rounded-lg w-3/4 mb-2"></div>
+                    <div className="h-2.5 bg-gray-100 rounded-lg w-1/2"></div>
                   </div>
-                  <div className="space-y-3 pt-2">
-                    <div className="h-4 bg-gray-100 rounded-md w-1/3"></div>
-                    <div className="h-4 bg-gray-100 rounded-md w-2/3"></div>
+                  <div className="space-y-2.5 pt-1">
+                    <div className="h-3 bg-gray-100 rounded-md w-1/3"></div>
+                    <div className="h-3 bg-gray-100 rounded-md w-2/3"></div>
                   </div>
-                  <div className="flex gap-2 pt-4 border-t border-gray-50">
-                    <div className="flex-1 h-10 bg-gray-100 rounded-xl"></div>
-                    <div className="w-12 h-12 bg-gray-100 rounded-xl"></div>
+                  <div className="flex gap-2 pt-3 border-t border-gray-50">
+                    <div className="flex-1 h-8 bg-gray-100 rounded-lg"></div>
+                    <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
                   </div>
                 </div>
               ))
@@ -242,19 +268,19 @@ export default function DataBumilPage() {
 
                   <div className="flex items-center gap-2 justify-end pt-4 md:pt-0 mt-2 md:mt-0 border-t md:border-none border-gray-50 w-full md:w-[260px]">
                     <button 
-                      onClick={() => router.push(`/dashboard/bidan/bumil/${bumil.id}/checkup`)}
+                      onClick={() => router.push(`/dashboard/admin/bumil/${bumil.id}/checkup`)}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-pink-500 text-white rounded-xl font-bold text-xs hover:bg-pink-600 transition-all shrink-0"
                     >
                       <Stethoscope className="w-4 h-4 shrink-0" /> Periksa
                     </button>
                     <button 
-                      onClick={() => router.push(`/dashboard/bidan/bumil/${bumil.id}/edit`)}
+                      onClick={() => router.push(`/dashboard/admin/bumil/${bumil.id}/edit`)}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-pink-50 text-pink-600 rounded-xl font-bold text-xs hover:bg-pink-100 transition-all shrink-0"
                     >
                       <Edit3 className="w-4 h-4 shrink-0" /> Profil
                     </button>
                     <button 
-                      onClick={() => router.push(`/dashboard/bidan/skrining?id=${bumil.id}`)}
+                      onClick={() => router.push(`/dashboard/admin/skrining?id=${bumil.id}`)}
                       className="w-10 h-10 flex items-center justify-center bg-gray-50 text-gray-400 rounded-xl hover:bg-pink-50 hover:text-pink-500 transition-all border border-gray-100 shrink-0"
                     >
                       <ChevronRight className="w-5 h-5 shrink-0" />
@@ -271,91 +297,91 @@ export default function DataBumilPage() {
               );
             }
 
-            return (
+              return (
               <div 
                 key={bumil.id} 
-                className="bg-white rounded-3xl p-6 shadow-sm border border-pink-50 hover:shadow-md transition-all group relative"
+                className="bg-white rounded-[24px] p-4 md:p-5 shadow-sm border border-pink-50 hover:shadow-md transition-all group relative w-full max-w-none"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div className="h-12 w-12 bg-pink-100 rounded-2xl flex items-center justify-center text-pink-600 font-black text-xl">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="h-10 w-10 bg-pink-100 rounded-xl flex items-center justify-center text-pink-600 font-black text-lg">
                     {bumil.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     {isIncomplete && (
-                      <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 rounded-full border border-amber-100">
-                        <AlertCircle className="w-3 h-3" />
-                        <span className="text-[10px] font-black uppercase">Belum Lengkap</span>
+                      <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full border border-amber-100">
+                        <AlertCircle className="w-2.5 h-2.5" />
+                        <span className="text-[8px] md:text-[9px] font-black uppercase">Belum Lengkap</span>
                       </div>
                     )}
                     <button 
                       onClick={() => handleDelete(bumil.id)}
-                      className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                      className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
                       title="Hapus Data"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
 
-                <h3 className="text-lg font-bold text-gray-900 mb-1">{bumil.name}</h3>
-                <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">NIK: {bumil.nik || 'Belum diisi'}</p>
-                <div className="flex flex-wrap gap-1 mb-6 text-[10px] font-black tracking-wider text-gray-500 uppercase">
-                  <span className="bg-pink-50 text-pink-700 px-2 py-0.5 rounded">G (Gravida): {bumil.gravida || 1}</span>
-                  <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded">P (Partus): {bumil.partus || 0}</span>
-                  <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded">A (Abortus): {bumil.abortus || 0}</span>
+                <h3 className="text-sm md:text-base font-bold text-gray-900 mb-0.5">{bumil.name}</h3>
+                <p className="text-[10px] md:text-xs font-bold text-gray-400 mb-1.5 uppercase tracking-wider">NIK: {bumil.nik || 'Belum diisi'}</p>
+                <div className="flex flex-wrap gap-1 mb-4 text-[8px] md:text-[9px] font-black tracking-wider text-gray-500 uppercase">
+                  <span className="bg-pink-50 text-pink-700 px-1.5 py-0.5 rounded">G: {bumil.gravida || 1}</span>
+                  <span className="bg-green-50 text-green-700 px-1.5 py-0.5 rounded">P: {bumil.partus || 0}</span>
+                  <span className="bg-red-50 text-red-700 px-1.5 py-0.5 rounded">A: {bumil.abortus || 0}</span>
                 </div>
 
-                <div className="space-y-3 mb-6">
+                <div className="space-y-2 mb-4">
                   {bumil.hpl ? (
-                    <div className="flex items-center gap-2 text-xs bg-purple-50 px-3 py-1.5 rounded-xl border border-purple-200 shadow-sm shadow-purple-50/50">
-                      <span className="font-black text-purple-700 uppercase tracking-widest text-[10px]">HPL:</span>
-                      <span className="font-extrabold text-purple-900 text-xs">{new Date(bumil.hpl).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    <div className="flex items-center gap-1.5 text-[10px] md:text-xs bg-purple-50 px-2 py-1 rounded-xl border border-purple-200 shadow-sm shadow-purple-50/50">
+                      <span className="font-black text-purple-700 uppercase tracking-widest text-[8px] md:text-[9px]">HPL:</span>
+                      <span className="font-extrabold text-purple-900 text-[10px] md:text-xs">{new Date(bumil.hpl).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-xs bg-red-50 px-3 py-1.5 rounded-xl border border-red-100 shadow-sm shadow-red-50/50">
-                      <span className="font-black text-red-600 uppercase tracking-widest text-[10px]">HPL:</span>
-                      <span className="font-extrabold text-red-800 text-[10px] uppercase">hpht belum di inputkan</span>
+                    <div className="flex items-center gap-1.5 text-[10px] md:text-xs bg-red-50 px-2 py-1 rounded-xl border border-red-100 shadow-sm shadow-red-50/50">
+                      <span className="font-black text-red-600 uppercase tracking-widest text-[8px] md:text-[9px]">HPL:</span>
+                      <span className="font-extrabold text-red-800 text-[9px] md:text-[10px] uppercase">hpht belum di inputkan</span>
                     </div>
                   )}
                   {bumil.hpht ? (
-                    <div className="flex items-center gap-2 text-xs bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-200 shadow-sm shadow-blue-50/50">
-                      <span className="font-black text-blue-700 uppercase tracking-widest text-[10px]">HPHT:</span>
-                      <span className="font-extrabold text-blue-900 text-xs">{new Date(bumil.hpht).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    <div className="flex items-center gap-1.5 text-[10px] md:text-xs bg-blue-50 px-2 py-1 rounded-xl border border-blue-200 shadow-sm shadow-blue-50/50">
+                      <span className="font-black text-blue-700 uppercase tracking-widest text-[8px] md:text-[9px]">HPHT:</span>
+                      <span className="font-extrabold text-blue-900 text-[10px] md:text-xs">{new Date(bumil.hpht).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 text-xs bg-red-50 px-3 py-1.5 rounded-xl border border-red-100 shadow-sm shadow-red-50/50">
-                      <span className="font-black text-red-600 uppercase tracking-widest text-[10px]">HPHT:</span>
-                      <span className="font-extrabold text-red-800 text-[10px] uppercase">hpht belum di inputkan</span>
+                    <div className="flex items-center gap-1.5 text-[10px] md:text-xs bg-red-50 px-2 py-1 rounded-xl border border-red-100 shadow-sm shadow-red-50/50">
+                      <span className="font-black text-red-600 uppercase tracking-widest text-[8px] md:text-[9px]">HPHT:</span>
+                      <span className="font-extrabold text-red-800 text-[9px] md:text-[10px] uppercase">hpht belum di inputkan</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="w-4 h-4 text-pink-300" />
-                    <span className="font-medium">{bumil.age} Tahun</span>
+                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                    <Calendar className="w-3.5 h-3.5 text-pink-300" />
+                    <span className="font-medium text-xs">{bumil.age} Tahun</span>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <MapPin className="w-4 h-4 text-pink-300" />
-                    <span className="font-medium truncate">{bumil.address || 'Alamat belum lengkap'}</span>
+                  <div className="flex items-center gap-2 text-xs text-gray-600">
+                    <MapPin className="w-3.5 h-3.5 text-pink-300" />
+                    <span className="font-medium text-xs truncate">{bumil.address || 'Alamat belum lengkap'}</span>
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-4 border-t border-gray-50">
+                <div className="flex gap-2 pt-3 border-t border-gray-50">
                   <button 
-                    onClick={() => router.push(`/dashboard/bidan/bumil/${bumil.id}/checkup`)}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-pink-500 text-white rounded-xl font-bold text-xs hover:bg-pink-600 transition-all shadow-md shadow-pink-100"
+                    onClick={() => router.push(`/dashboard/admin/bumil/${bumil.id}/checkup`)}
+                    className="flex-1 flex items-center justify-center gap-1 px-2 py-2.5 bg-pink-500 text-white rounded-xl font-bold text-[10px] md:text-xs hover:bg-pink-600 transition-all shadow-md shadow-pink-100"
                   >
-                    <Stethoscope className="w-4 h-4" /> Periksa
+                    <Stethoscope className="w-3.5 h-3.5" /> Periksa
                   </button>
                   <button 
-                    onClick={() => router.push(`/dashboard/bidan/bumil/${bumil.id}/edit`)}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-pink-50 text-pink-600 rounded-xl font-bold text-xs hover:bg-pink-100 transition-all"
+                    onClick={() => router.push(`/dashboard/admin/bumil/${bumil.id}/edit`)}
+                    className="flex-1 flex items-center justify-center gap-1 px-2 py-2.5 bg-pink-50 text-pink-600 rounded-xl font-bold text-[10px] md:text-xs hover:bg-pink-100 transition-all"
                   >
-                    <Edit3 className="w-4 h-4" /> Profil
+                    <Edit3 className="w-3.5 h-3.5" /> Profil
                   </button>
                   <button 
-                    onClick={() => router.push(`/dashboard/bidan/skrining?id=${bumil.id}`)}
-                    className="w-12 h-12 flex items-center justify-center bg-gray-50 text-gray-400 rounded-xl hover:bg-pink-50 hover:text-pink-500 transition-all border border-gray-100"
+                    onClick={() => router.push(`/dashboard/admin/skrining?id=${bumil.id}`)}
+                    className="w-10 h-10 flex items-center justify-center bg-gray-50 text-gray-400 rounded-xl hover:bg-pink-50 hover:text-pink-500 transition-all border border-gray-100 shrink-0"
                   >
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
               </div>
