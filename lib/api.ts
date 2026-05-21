@@ -48,6 +48,37 @@ export const authApi = {
   login: (credentials: any) => api.post('/auth/login', credentials),
   register: (data: any) => api.post('/auth/register', data),
   getUsers: () => api.get('/auth/users'), 
+  changePassword: (data: { userId: number; newPassword: string }) => api.post('/auth/change-password', data),
+};
+
+export const puskesmasApi = {
+  create: (data: any) => api.post('/puskesmas', data),
+  getAll: (lat?: number, lon?: number) => api.get('/puskesmas', { params: { lat, lon } }),
+  update: (id: string, data: any) => api.put(`/puskesmas/${id}`, data),
+  delete: (id: string) => api.delete(`/puskesmas/${id}`)
+};
+
+export const rumahSakitApi = {
+  create: (data: any) => api.post('/rumah-sakit', data),
+  getAll: (lat?: number, lon?: number) => api.get('/rumah-sakit', { params: { lat, lon } }),
+  update: (id: string, data: any) => api.put(`/rumah-sakit/${id}`, data),
+  delete: (id: string) => api.delete(`/rumah-sakit/${id}`)
+};
+
+export const bidanApi = {
+  getAll: (params?: { page?: number, limit?: number, search?: string }) => api.get('/bidan', { params }),
+  getById: (id: string) => api.get(`/bidan/${id}`),
+  create: (data: any) => api.post('/bidan', data),
+  update: (id: string, data: any) => api.put(`/bidan/${id}`, data),
+  delete: (id: string) => api.delete(`/bidan/${id}`)
+};
+
+export const dokterApi = {
+  getAll: (params?: { page?: number, limit?: number, search?: string }) => api.get('/dokter', { params }),
+  getById: (id: string) => api.get(`/dokter/${id}`),
+  create: (data: any) => api.post('/dokter', data),
+  update: (id: string, data: any) => api.put(`/dokter/${id}`, data),
+  delete: (id: string) => api.delete(`/dokter/${id}`)
 };
 
 export default api;

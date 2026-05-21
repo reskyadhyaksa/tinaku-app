@@ -195,7 +195,28 @@ export default function EdukasiPage() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 md:py-12">
+      <div className="max-w-7xl mx-auto px-6 py-8 md:py-12 space-y-8">
+
+        {/* Interactive Danger Signs Voice Book Banner */}
+        <div className="bg-gradient-to-r from-red-500 via-rose-600 to-pink-600 rounded-[32px] p-6 sm:p-8 text-white shadow-xl shadow-red-200 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+          <div className="space-y-2 max-w-2xl relative z-10">
+            <span className="inline-flex items-center gap-1 bg-white/20 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider">
+              <ShieldAlert className="w-3.5 h-3.5 animate-pulse" /> Baru & Interaktif
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight">
+              Buku Saku Digital Tanda Bahaya Kehamilan (Bisa Bersuara)
+            </h2>
+            <p className="text-xs sm:text-sm text-red-50 font-semibold leading-relaxed">
+              Khusus untuk Ibu yang malas membaca atau ingin cara praktis, halaman ini bisa membacakan tanda bahaya kehamilan langsung dengan suara bahasa Indonesia, lengkap dengan kuis interaktif kebiasaan harian (Boleh vs Tidak Boleh)!
+            </p>
+          </div>
+          <Link 
+            href="/tanda-bahaya"
+            className="w-full md:w-auto bg-white text-red-600 hover:bg-red-50 px-6 py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg text-center whitespace-nowrap active:scale-[0.98] transition-transform relative z-10"
+          >
+            Buka Buku Saku Suara →
+          </Link>
+        </div>
 
         <div className="lg:hidden relative w-full mb-8">
           <button

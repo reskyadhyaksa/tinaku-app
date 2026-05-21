@@ -12,9 +12,14 @@ import {
   MoreVertical,
   Briefcase,
   Calendar,
-  Activity
+  Activity,
+  X,
+  Eye,
+  EyeOff,
+  Building2,
+  ChevronDown
 } from 'lucide-react';
-import { authApi } from '@/lib/api';
+import { authApi, bidanApi, puskesmasApi, rumahSakitApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 export default function UserBidanPage() {
@@ -24,12 +29,23 @@ export default function UserBidanPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [puskesmasList, setPuskesmasList] = useState<any[]>([]);
+  const [rumahSakitList, setRumahSakitList] = useState<any[]>([]);
   
-  // Form state for new bidan
+  // Form state for new bidan (unified login & profile)
   const [newBidan, setNewBidan] = useState({
     username: '',
     password: '',
-    role: 'bidan'
+    name: '',
+    nik: '',
+    sip: '',
+    phone: '',
+    address: '',
+    faskes_type: '', // 'puskesmas' or 'rumah_sakit'
+    faskes_id: ''
   });
 
   useEffect(() => {
@@ -39,8 +55,22 @@ export default function UserBidanPage() {
       router.push('/dashboard/admin');
     } else {
       fetchUsers();
+      fetchFaskes();
     }
   }, [user]);
+
+  const fetchFaskes = async () => {
+    try {
+      const [resPuskesmas, resRumahSakit] = await Promise.all([
+        puskesmasApi.getAll(),
+        rumahSakitApi.getAll()
+      ]);
+      setPuskesmasList(resPuskesmas.data.data || []);
+      setRumahSakitList(resRumahSakit.data.data || []);
+    } catch (error) {
+      console.error('Gagal mengambil data faskes:', error);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -56,17 +86,54 @@ export default function UserBidanPage() {
 
   const handleAddBidan = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (newBidan.password.length < 6) {
+      toast.error('Password minimal 6 karakter');
+      return;
+    }
+    setIsSubmitting(true);
     try {
-      await authApi.register({
-        ...newBidan,
-        username: newBidan.username.toLowerCase()
+      // 1. Register User
+      const registerRes = await authApi.register({
+        username: newBidan.username.toLowerCase(),
+        password: newBidan.password,
+        role: 'bidan'
       });
-      toast.success('Bidan baru berhasil didaftarkan!');
+      
+      const createdUserId = registerRes.data?.user?.id;
+      if (!createdUserId) {
+        throw new Error('Gagal mendapatkan ID user baru');
+      }
+
+      // 2. Create Bidan Profile
+      await bidanApi.create({
+        user_id: createdUserId,
+        name: newBidan.name,
+        nik: newBidan.nik,
+        sip: newBidan.sip,
+        phone: newBidan.phone,
+        address: newBidan.address,
+        puskesmas_id: newBidan.faskes_type === 'puskesmas' && newBidan.faskes_id ? parseInt(newBidan.faskes_id) : null,
+        rumah_sakit_id: newBidan.faskes_type === 'rumah_sakit' && newBidan.faskes_id ? parseInt(newBidan.faskes_id) : null,
+      });
+
+      toast.success('Bidan baru berhasil terdaftar!');
       setShowAddForm(false);
-      setNewBidan({ username: '', password: '', role: 'bidan' });
+      setNewBidan({
+        username: '',
+        password: '',
+        name: '',
+        nik: '',
+        sip: '',
+        phone: '',
+        address: '',
+        faskes_type: '',
+        faskes_id: ''
+      });
       fetchUsers();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Gagal mendaftarkan bidan');
+      toast.error(error.response?.data?.message || error.message || 'Gagal mendaftarkan bidan');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -92,52 +159,198 @@ export default function UserBidanPage() {
             </div>
           </div>
           <button 
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={() => setShowAddForm(true)}
             className="flex items-center justify-center gap-2 bg-pink-500 text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-pink-100 hover:bg-pink-600 transition-all w-full md:w-auto text-xs md:text-sm"
           >
             <UserPlus className="w-4 h-4" />
-            {showAddForm ? 'Batal' : 'Tambah Bidan Baru'}
+            Tambah Bidan Baru
           </button>
         </div>
 
-        {/* Add Form Section */}
+        {/* Add Popup Modal */}
         {showAddForm && (
-          <div className="bg-white p-5 md:p-6 rounded-3xl shadow-sm border border-pink-200 animate-in slide-in-from-top duration-300">
-            <h2 className="text-base md:text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <ShieldCheck className="text-pink-500 w-5 h-5" /> Registrasi Akun Bidan
-            </h2>
-            <form onSubmit={handleAddBidan} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-700">Username</label>
-                <input 
-                  type="text" 
-                  value={newBidan.username}
-                  onChange={(e) => setNewBidan({...newBidan, username: e.target.value})}
-                  required
-                  className="w-full px-4 py-2.5 md:py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-xs md:text-sm"
-                  placeholder="Username Bidan"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold text-gray-700">Password Sementara</label>
-                <input 
-                  type="password" 
-                  value={newBidan.password}
-                  onChange={(e) => setNewBidan({...newBidan, password: e.target.value})}
-                  required
-                  className="w-full px-4 py-2.5 md:py-3 rounded-2xl border border-gray-100 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-xs md:text-sm"
-                  placeholder="Min. 6 Karakter"
-                />
-              </div>
-              <div className="flex items-end">
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
+            <div className="bg-white rounded-[32px] shadow-2xl border border-pink-100 p-6 md:p-8 w-full max-w-2xl transform scale-100 transition-all z-50 my-auto">
+              {/* Header */}
+              <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-pink-500 rounded-xl flex items-center justify-center text-white shrink-0 shadow-md">
+                    <UserPlus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-gray-900 leading-tight">Tambah Bidan Baru</h2>
+                    <p className="text-xs text-gray-500 font-medium">Buat akun login dan profil rekan Bidan sekaligus.</p>
+                  </div>
+                </div>
                 <button 
-                  type="submit"
-                  className="w-full bg-gray-900 text-white py-2.5 md:py-3 rounded-2xl font-bold hover:bg-gray-800 transition-all text-xs md:text-sm"
+                  onClick={() => setShowAddForm(false)}
+                  className="p-2 hover:bg-gray-50 rounded-full transition-colors text-gray-400 hover:text-gray-700"
                 >
-                  Daftarkan Bidan
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
+
+              {/* Form */}
+              <form onSubmit={handleAddBidan} className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Akun Section */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-700 uppercase tracking-wider block">Username</label>
+                    <input 
+                      type="text" 
+                      value={newBidan.username}
+                      onChange={(e) => setNewBidan({...newBidan, username: e.target.value})}
+                      required
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-xs font-semibold text-gray-800"
+                      placeholder="Username login"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-700 uppercase tracking-wider block">Password</label>
+                    <div className="relative">
+                      <input 
+                        type={showPassword ? "text" : "password"}
+                        value={newBidan.password}
+                        onChange={(e) => setNewBidan({...newBidan, password: e.target.value})}
+                        required
+                        className="w-full pl-4 pr-10 py-3 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-xs font-semibold text-gray-800"
+                        placeholder="Min. 6 karakter"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-450 hover:text-gray-650"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Profil Section */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-700 uppercase tracking-wider block">Nama Lengkap</label>
+                    <input 
+                      type="text" 
+                      value={newBidan.name}
+                      onChange={(e) => setNewBidan({...newBidan, name: e.target.value})}
+                      required
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-xs font-semibold text-gray-800"
+                      placeholder="Nama Lengkap dengan Gelar"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-700 uppercase tracking-wider block">NIK</label>
+                    <input 
+                      type="text" 
+                      value={newBidan.nik}
+                      onChange={(e) => setNewBidan({...newBidan, nik: e.target.value})}
+                      required
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-xs font-semibold text-gray-800"
+                      placeholder="16 Digit NIK"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-700 uppercase tracking-wider block">SIP / Nomor STR</label>
+                    <input 
+                      type="text" 
+                      value={newBidan.sip}
+                      onChange={(e) => setNewBidan({...newBidan, sip: e.target.value})}
+                      required
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-xs font-semibold text-gray-800"
+                      placeholder="Surat Izin Praktik"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-700 uppercase tracking-wider block">No. Telepon</label>
+                    <input 
+                      type="text" 
+                      value={newBidan.phone}
+                      onChange={(e) => setNewBidan({...newBidan, phone: e.target.value})}
+                      required
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-xs font-semibold text-gray-800"
+                      placeholder="0812..."
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-gray-700 uppercase tracking-wider block">Alamat Lengkap</label>
+                  <textarea 
+                    value={newBidan.address}
+                    onChange={(e) => setNewBidan({...newBidan, address: e.target.value})}
+                    required
+                    rows={2}
+                    className="w-full px-4 py-3 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-xs font-semibold resize-none text-gray-800 animate-fade-in"
+                    placeholder="Jalan, Kelurahan..."
+                  />
+                </div>
+
+                {/* Faskes Relasi */}
+                <div className="p-4 bg-pink-50/20 rounded-2xl border border-pink-100/50 space-y-3">
+                  <h3 className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                    <Building2 className="w-4 h-4 text-pink-500" /> Relasi Fasilitas Kesehatan
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider block">Tipe Faskes</label>
+                      <div className="relative">
+                        <select
+                          value={newBidan.faskes_type}
+                          onChange={(e) => setNewBidan({...newBidan, faskes_type: e.target.value, faskes_id: ''})}
+                          className="w-full appearance-none pr-8 px-3 py-2.5 rounded-xl border border-gray-100 bg-white focus:ring-2 focus:ring-pink-200 outline-none text-xs font-bold transition-all text-gray-800"
+                        >
+                          <option value="">Pilih Tipe</option>
+                          <option value="puskesmas">Puskesmas</option>
+                          <option value="rumah_sakit">Rumah Sakit</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                          <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider block">Pilih Instalasi</label>
+                      <div className="relative">
+                        <select
+                          value={newBidan.faskes_id}
+                          onChange={(e) => setNewBidan({...newBidan, faskes_id: e.target.value})}
+                          disabled={!newBidan.faskes_type}
+                          className="w-full appearance-none pr-8 px-3 py-2.5 rounded-xl border border-gray-100 bg-white focus:ring-2 focus:ring-pink-200 outline-none text-xs font-bold transition-all disabled:bg-gray-100 disabled:text-gray-400 text-gray-800"
+                        >
+                          <option value="">Pilih Nama Faskes</option>
+                          {newBidan.faskes_type === 'puskesmas' && puskesmasList.map((p) => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                          {newBidan.faskes_type === 'rumah_sakit' && rumahSakitList.map((rs) => (
+                            <option key={rs.id} value={rs.id}>{rs.name}</option>
+                          ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                          <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button 
+                    type="button"
+                    onClick={() => setShowAddForm(false)}
+                    className="w-1/2 py-3 bg-gray-105 hover:bg-gray-200 text-gray-700 rounded-2xl font-bold transition-all text-xs"
+                  >
+                    Batal
+                  </button>
+                  <button 
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-1/2 py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-2xl font-bold shadow-lg shadow-pink-100 transition-all text-xs flex items-center justify-center gap-1.5"
+                  >
+                    {isSubmitting ? 'Mendaftarkan...' : 'Daftarkan & Simpan'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 

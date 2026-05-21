@@ -14,9 +14,13 @@ import {
   ChevronRight,
   Heart,
   Calendar,
-  Clock
+  Clock,
+  Key,
+  Eye,
+  EyeOff,
+  ChevronDown
 } from 'lucide-react';
-import { bumilApi } from '@/lib/api';
+import { bumilApi, authApi } from '@/lib/api';
 import dynamic from 'next/dynamic';
 import toast from 'react-hot-toast';
 
@@ -50,6 +54,14 @@ export default function EditBumilPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
 
+  // States for Change Password & User ID
+  const [bumilUserId, setBumilUserId] = useState<number | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
   // Custom Calendar Popover States for HPHT and HPL
   const [isHphtOpen, setIsHphtOpen] = useState(false);
   const [isHplOpen, setIsHplOpen] = useState(false);
@@ -80,7 +92,12 @@ export default function EditBumilPage() {
     const offset = selected.getTimezoneOffset();
     const localDate = new Date(selected.getTime() - (offset * 60 * 1000));
     const dateStr = localDate.toISOString().split('T')[0];
-    setFormData(prev => ({ ...prev, hpht: dateStr }));
+    
+    // Auto-calculate HPL: HPHT + 280 days
+    const suggestedHpl = new Date(selected.getTime() + 280 * 24 * 60 * 60 * 1000);
+    const hplStr = suggestedHpl.toISOString().split('T')[0];
+
+    setFormData(prev => ({ ...prev, hpht: dateStr, hpl: hplStr }));
     setIsHphtOpen(false);
   };
 
@@ -95,7 +112,12 @@ export default function EditBumilPage() {
     const offset = selected.getTimezoneOffset();
     const localDate = new Date(selected.getTime() - (offset * 60 * 1000));
     const dateStr = localDate.toISOString().split('T')[0];
-    setFormData(prev => ({ ...prev, hpl: dateStr }));
+    
+    // Auto-calculate HPHT: HPL - 280 days
+    const suggestedHpht = new Date(selected.getTime() - 280 * 24 * 60 * 60 * 1000);
+    const hphtStr = suggestedHpht.toISOString().split('T')[0];
+
+    setFormData(prev => ({ ...prev, hpl: dateStr, hpht: hphtStr }));
     setIsHplOpen(false);
   };
 
@@ -120,23 +142,13 @@ export default function EditBumilPage() {
     }
   }, [user, id]);
 
-  // Auto-calculate suggested HPL based on HPHT (HPHT + 280 days Naegele's rule)
-  useEffect(() => {
-    if (formData.hpht) {
-      const hphtDate = new Date(formData.hpht);
-      if (!isNaN(hphtDate.getTime())) {
-        const suggestedHpl = new Date(hphtDate.getTime() + 280 * 24 * 60 * 60 * 1000);
-        setFormData(prev => ({ ...prev, hpl: suggestedHpl.toISOString().split('T')[0] }));
-      }
-    } else {
-      setFormData(prev => ({ ...prev, hpl: '' }));
-    }
-  }, [formData.hpht]);
-
   const fetchBumilData = async () => {
     try {
       const res = await bumilApi.getById(id as string);
       const data = res.data;
+      if (data.user_id) {
+        setBumilUserId(data.user_id);
+      }
       setFormData({
         name: data.name || '',
         nik: data.nik || '',
@@ -241,6 +253,36 @@ export default function EditBumilPage() {
     }
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bumilUserId) {
+      toast.error('User ID tidak ditemukan untuk Ibu Hamil ini');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('Password minimal 6 karakter');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Password baru dan konfirmasi password tidak cocok');
+      return;
+    }
+    setIsUpdatingPassword(true);
+    try {
+      await authApi.changePassword({
+        userId: bumilUserId,
+        newPassword
+      });
+      toast.success('Password berhasil diperbarui');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Gagal mengubah password');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
   if (isFetching) return <div className="min-h-screen bg-pink-50 flex items-center justify-center font-bold text-pink-500">Memuat Data...</div>;
 
   return (
@@ -288,15 +330,20 @@ export default function EditBumilPage() {
               </div>
               <div className="space-y-2 bg-pink-50/20 p-4 rounded-2xl border border-pink-100/30">
                 <label className="text-sm font-bold text-pink-700">Status Kehamilan</label>
-                <select 
-                  name="status" 
-                  value={formData.status} 
-                  onChange={(e: any) => setFormData(prev => ({ ...prev, status: e.target.value }))}
-                  className="w-full px-4 py-3.5 rounded-2xl text-gray-700 border border-gray-100 bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all font-bold"
-                >
-                  <option value="hamil">🤰 Sedang Hamil</option>
-                  <option value="melahirkan">👶 Sudah Melahirkan</option>
-                </select>
+                <div className="relative">
+                  <select 
+                    name="status" 
+                    value={formData.status} 
+                    onChange={(e: any) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                    className="w-full appearance-none pr-10 px-4 py-3.5 rounded-2xl text-gray-700 border border-gray-100 bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all font-bold"
+                  >
+                    <option value="hamil">🤰 Sedang Hamil</option>
+                    <option value="melahirkan">👶 Sudah Melahirkan</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  </div>
+                </div>
               </div>
               <div className="space-y-2 bg-pink-50/20 p-4 rounded-2xl border border-pink-100/30 relative">
                 <label className="text-sm font-bold text-pink-700">HPHT (Hari Pertama Haid Terakhir)</label>
@@ -545,12 +592,81 @@ export default function EditBumilPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-pink-500 text-white font-bold py-5 rounded-3xl shadow-lg shadow-pink-100 hover:bg-pink-600 transition-all flex items-center justify-center gap-2"
+            className="w-full bg-pink-500 text-white font-bold py-5 rounded-3xl shadow-lg shadow-pink-100 hover:bg-pink-600 transition-all flex items-center justify-center gap-2 mb-6"
           >
             {isLoading ? 'Menyimpan...' : 'Simpan Perubahan Data'}
             <Save className="w-5 h-5" />
           </button>
         </form>
+
+        {/* Change Password Card */}
+        {bumilUserId && (
+          <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-pink-50">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center text-pink-500 shrink-0">
+                <Key className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Ubah Password</h2>
+                <p className="text-xs md:text-sm text-gray-500 font-medium">Perbarui password login untuk akun ibu hamil ini.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-gray-700 uppercase tracking-wider block">Password Baru</label>
+                  <div className="relative">
+                    <input
+                      required
+                      type={showNewPass ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full pl-4 pr-10 py-3.5 rounded-2xl text-gray-750 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-sm font-semibold"
+                      placeholder="Min. 6 karakter"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPass(!showNewPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 animate-fade-in"
+                    >
+                      {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-gray-700 uppercase tracking-wider block">Konfirmasi Password Baru</label>
+                  <div className="relative">
+                    <input
+                      required
+                      type={showConfirmPass ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full pl-4 pr-10 py-3.5 rounded-2xl text-gray-750 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-sm font-semibold"
+                      placeholder="Ketik ulang password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPass(!showConfirmPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 animate-fade-in"
+                    >
+                      {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <button
+                type="submit"
+                disabled={isUpdatingPassword}
+                className="w-full py-3.5 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg"
+              >
+                <Key className="w-4 h-4" /> {isUpdatingPassword ? 'Memperbarui...' : 'Ubah Password'}
+              </button>
+            </form>
+          </div>
+        )}
+
       </div>
     </div>
   );

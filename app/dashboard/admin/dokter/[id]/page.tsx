@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Save, Briefcase, User as UserIcon, Building2, ChevronDown, Key, Eye, EyeOff } from 'lucide-react';
-import { authApi, bidanApi, puskesmasApi, rumahSakitApi } from '@/lib/api';
+import { authApi, dokterApi, puskesmasApi, rumahSakitApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
-export default function BidanEditPage() {
+export default function DokterEditPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const { id } = useParams(); // This is the user_id from the URL
+  const { id } = useParams();
   const [targetUser, setTargetUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,9 +23,10 @@ export default function BidanEditPage() {
     name: '',
     nik: '',
     sip: '',
+    specialization: '',
     address: '',
     phone: '',
-    faskes_type: '', // 'puskesmas' or 'rumah_sakit'
+    faskes_type: '',
     faskes_id: ''
   });
 
@@ -48,17 +49,15 @@ export default function BidanEditPage() {
 
   const fetchData = async () => {
     try {
-      // Fetch user account
       const resUsers = await authApi.getUsers();
       const foundUser = resUsers.data.find((u: any) => u.id.toString() === id);
       if (!foundUser) {
         toast.error('User tidak ditemukan');
-        router.push('/dashboard/admin/bidan');
+        router.push('/dashboard/admin/dokter');
         return;
       }
       setTargetUser(foundUser);
 
-      // Fetch Faskes
       const [resPuskesmas, resRumahSakit] = await Promise.all([
         puskesmasApi.getAll(),
         rumahSakitApi.getAll()
@@ -66,34 +65,35 @@ export default function BidanEditPage() {
       setPuskesmasList(resPuskesmas.data.data || []);
       setRumahSakitList(resRumahSakit.data.data || []);
 
-      // Fetch Profile if exists
-      const resProfile = await bidanApi.getAll();
-      const bidanProfile = resProfile.data.data.find((b: any) => b.user_id.toString() === id);
-      if (bidanProfile) {
-        setProfile(bidanProfile);
+      const resProfile = await dokterApi.getAll();
+      const dokterProfile = resProfile.data.data.find((d: any) => d.user_id.toString() === id);
+      
+      if (dokterProfile) {
+        setProfile(dokterProfile);
         let faskes_type = '';
         let faskes_id = '';
-        if (bidanProfile.puskesmas_id) {
+        if (dokterProfile.puskesmas_id) {
           faskes_type = 'puskesmas';
-          faskes_id = bidanProfile.puskesmas_id.toString();
-        } else if (bidanProfile.rumah_sakit_id) {
+          faskes_id = dokterProfile.puskesmas_id.toString();
+        } else if (dokterProfile.rumah_sakit_id) {
           faskes_type = 'rumah_sakit';
-          faskes_id = bidanProfile.rumah_sakit_id.toString();
+          faskes_id = dokterProfile.rumah_sakit_id.toString();
         }
         
         setForm({
-          name: bidanProfile.name || '',
-          nik: bidanProfile.nik || '',
-          sip: bidanProfile.sip || '',
-          address: bidanProfile.address || '',
-          phone: bidanProfile.phone || '',
+          name: dokterProfile.name || '',
+          nik: dokterProfile.nik || '',
+          sip: dokterProfile.sip || '',
+          specialization: dokterProfile.specialization || '',
+          address: dokterProfile.address || '',
+          phone: dokterProfile.phone || '',
           faskes_type,
           faskes_id
         });
       }
     } catch (error) {
       console.error(error);
-      toast.error('Gagal mengambil data bidan');
+      toast.error('Gagal mengambil data dokter');
     } finally {
       setIsLoading(false);
     }
@@ -112,6 +112,7 @@ export default function BidanEditPage() {
         name: form.name,
         nik: form.nik,
         sip: form.sip,
+        specialization: form.specialization,
         address: form.address,
         phone: form.phone,
         puskesmas_id: form.faskes_type === 'puskesmas' && form.faskes_id ? parseInt(form.faskes_id) : null,
@@ -119,13 +120,13 @@ export default function BidanEditPage() {
       };
 
       if (profile) {
-        await bidanApi.update(profile.id.toString(), payload);
-        toast.success('Profil bidan berhasil diperbarui');
+        await dokterApi.update(profile.id.toString(), payload);
+        toast.success('Profil dokter berhasil diperbarui');
       } else {
-        await bidanApi.create(payload);
-        toast.success('Profil bidan berhasil dibuat');
+        await dokterApi.create(payload);
+        toast.success('Profil dokter berhasil dibuat');
       }
-      router.push('/dashboard/admin/bidan');
+      router.push('/dashboard/admin/dokter');
     } catch (error) {
       toast.error('Gagal menyimpan profil');
     } finally {
@@ -168,7 +169,7 @@ export default function BidanEditPage() {
         
         {/* Back Button */}
         <button 
-          onClick={() => router.push("/dashboard/admin/bidan")}
+          onClick={() => router.push("/dashboard/admin/dokter")}
           className="flex items-center gap-2 text-gray-500 hover:text-pink-500 font-bold text-sm transition-colors w-fit"
         >
           <ArrowLeft className="w-4 h-4" /> Kembali
@@ -181,8 +182,8 @@ export default function BidanEditPage() {
               <UserIcon className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-gray-900">Edit Profil Bidan: {targetUser.username}</h2>
-              <p className="text-xs md:text-sm text-gray-500 font-medium">Lengkapi informasi pribadi dan pekerjaan rekan Bidan.</p>
+              <h2 className="text-xl font-black text-gray-900">Edit Profil Dokter: {targetUser.username}</h2>
+              <p className="text-xs md:text-sm text-gray-500 font-medium">Lengkapi informasi pribadi dan pekerjaan dokter spesialis.</p>
             </div>
           </div>
 
@@ -198,6 +199,17 @@ export default function BidanEditPage() {
                   onChange={handleChange}
                   className="w-full px-4 py-3.5 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-sm font-semibold"
                   placeholder="Nama Lengkap dengan Gelar"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-gray-700 uppercase tracking-wider block">Spesialisasi</label>
+                <input
+                  type="text"
+                  name="specialization"
+                  value={form.specialization}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3.5 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-sm font-semibold"
+                  placeholder="Spesialis Kandungan (Sp.OG)"
                 />
               </div>
               <div className="space-y-2">
@@ -222,7 +234,7 @@ export default function BidanEditPage() {
                   placeholder="Surat Izin Praktik"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 md:col-span-2">
                 <label className="text-xs font-black text-gray-700 uppercase tracking-wider block">No. Telepon</label>
                 <input
                   type="text"
@@ -261,7 +273,7 @@ export default function BidanEditPage() {
                       onChange={(e) => {
                         setForm({ ...form, faskes_type: e.target.value, faskes_id: '' });
                       }}
-                      className="w-full appearance-none pr-10 px-4 py-3.5 rounded-2xl text-gray-700 border border-gray-100 bg-white focus:ring-2 focus:ring-pink-200 outline-none text-sm font-bold transition-all"
+                      className="w-full appearance-none pr-10 px-4 py-3.5 rounded-2xl text-gray-705 border border-gray-100 bg-white focus:ring-2 focus:ring-pink-200 outline-none text-sm font-bold transition-all"
                     >
                       <option value="">Pilih Tipe</option>
                       <option value="puskesmas">Puskesmas</option>
@@ -280,7 +292,7 @@ export default function BidanEditPage() {
                       value={form.faskes_id}
                       onChange={handleChange}
                       disabled={!form.faskes_type}
-                      className="w-full appearance-none pr-10 px-4 py-3.5 rounded-2xl text-gray-700 border border-gray-100 bg-white focus:ring-2 focus:ring-pink-200 outline-none text-sm font-bold transition-all disabled:bg-gray-100 disabled:text-gray-400"
+                      className="w-full appearance-none pr-10 px-4 py-3.5 rounded-2xl text-gray-705 border border-gray-100 bg-white focus:ring-2 focus:ring-pink-200 outline-none text-sm font-bold transition-all disabled:bg-gray-100 disabled:text-gray-400"
                     >
                       <option value="">Pilih Nama Faskes</option>
                       {form.faskes_type === 'puskesmas' && puskesmasList.map((p) => (
@@ -316,7 +328,7 @@ export default function BidanEditPage() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900">Ubah Password</h2>
-              <p className="text-xs md:text-sm text-gray-500 font-medium">Perbarui password login untuk akun bidan ini.</p>
+              <p className="text-xs md:text-sm text-gray-500 font-medium">Perbarui password login untuk akun dokter ini.</p>
             </div>
           </div>
 

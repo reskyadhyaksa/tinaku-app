@@ -36,6 +36,7 @@ export default function Sidebar() {
 
   if (user.role === 'superadmin') {
     menuItems.push({ name: 'User Dokter', href: '/dashboard/admin/dokter', icon: Users });
+    menuItems.push({ name: 'Fasilitas Kesehatan', href: '/dashboard/admin/faskes', icon: BookOpen });
   }
 
   return (

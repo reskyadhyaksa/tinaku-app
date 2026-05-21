@@ -17,7 +17,12 @@ import {
   LayoutGrid,
   List,
   MapPin,
-  Stethoscope
+  Stethoscope,
+  ChevronDown,
+  Download,
+  FileText,
+  Activity,
+  Plus
 } from 'lucide-react';
 import { bumilApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -33,6 +38,108 @@ export default function DataBumilPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [viewMode, setViewMode] = useState<'card' | 'list'>('card');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [openPeriksaId, setOpenPeriksaId] = useState<string | null>(null);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const escapeCSV = (value: any) => {
+    if (value === null || value === undefined) return '""';
+    const str = String(value);
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const handleExport = async (type: 'bidan' | 'usg') => {
+    setShowActionsMenu(false);
+    if (isExporting) return;
+    setIsExporting(true);
+    const toastId = toast.loading(`Mempersiapkan data ${type === 'bidan' ? 'Catatan Bidan' : 'Catatan USG'}...`);
+    
+    try {
+      const res = await bumilApi.getAll({ limit: 1000 });
+      const allBumils = res.data.data || (Array.isArray(res.data) ? res.data : []);
+      
+      let csvContent = "";
+      
+      if (type === 'bidan') {
+        const headers = ["NIK", "Nama Ibu Hamil", "Tanggal Periksa", "Minggu Ke", "Berat Badan (Kg)", "TFU", "Status TFU", "Tekanan Darah", "Status Tekanan Darah", "HB", "Status HB", "DJJ", "Status DJJ"];
+        csvContent += headers.map(escapeCSV).join(",") + "\n";
+        
+        for (const bumil of allBumils) {
+          try {
+            const checkupsRes = await bumilApi.getCheckups(bumil.id);
+            const checkups = checkupsRes.data || [];
+            for (const c of checkups) {
+              const row = [
+                bumil.nik || '-',
+                bumil.name || '-',
+                c.checkup_date ? new Date(c.checkup_date).toLocaleDateString('id-ID') : '-',
+                c.week || '-',
+                c.weight || '-',
+                c.tfu || '-',
+                c.tfu_status || '-',
+                c.tekanan_darah || '-',
+                c.tekanan_darah_status || '-',
+                c.hb || '-',
+                c.hb_status || '-',
+                c.djj || '-',
+                c.djj_status || '-'
+              ];
+              csvContent += row.map(escapeCSV).join(",") + "\n";
+            }
+          } catch(err) {
+            console.error(`Gagal mengambil checkup untuk bumil ${bumil.id}`, err);
+          }
+        }
+      } else {
+        const headers = ["NIK", "Nama Ibu Hamil", "Tanggal Periksa", "Nama Dokter", "Kesimpulan", "Usia Kehamilan (USG)", "HPL (USG)", "Letak Kehamilan", "Jumlah Janin", "Pulsasi Jantung", "Kecurigaan Abnormal"];
+        csvContent += headers.map(escapeCSV).join(",") + "\n";
+        
+        for (const bumil of allBumils) {
+          try {
+            const usgRes = await bumilApi.getDoctorCheckups(bumil.id);
+            const checkups = usgRes.data || [];
+            for (const c of checkups) {
+              const row = [
+                bumil.nik || '-',
+                bumil.name || '-',
+                c.checkup_date ? new Date(c.checkup_date).toLocaleDateString('id-ID') : '-',
+                c.dokter_name || '-',
+                c.konsep || '-',
+                c.usia_kehamilan_usg_weeks ? `${c.usia_kehamilan_usg_weeks} Minggu` : '-',
+                c.hpl_usg ? new Date(c.hpl_usg).toLocaleDateString('id-ID') : '-',
+                c.letak_kehamilan || '-',
+                c.jumlah_bayi || '-',
+                c.pulsasi_jantung || '-',
+                c.kecurigaan_abnormal === 'Ya' ? `Ya: ${c.kecurigaan_abnormal_detail || ''}` : 'Tidak'
+              ];
+              csvContent += row.map(escapeCSV).join(",") + "\n";
+            }
+          } catch(err) {
+            console.error(`Gagal mengambil usg untuk bumil ${bumil.id}`, err);
+          }
+        }
+      }
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Export_${type === 'bidan' ? 'Catatan_Bidan' : 'Catatan_USG'}_${new Date().getTime()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Export berhasil!', { id: toastId });
+    } catch (error) {
+      toast.error('Gagal melakukan export data', { id: toastId });
+      console.error(error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -105,7 +212,6 @@ export default function DataBumilPage() {
     <div className="min-h-screen bg-pink-50 p-4 md:p-8 font-sans">
       <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-pink-100">
           <div className="flex items-center gap-4">
             <div className="h-14 w-14 bg-pink-500 rounded-2xl flex items-center justify-center shadow-lg shadow-pink-100">
@@ -117,14 +223,7 @@ export default function DataBumilPage() {
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-            <button 
-              onClick={() => router.push('/dashboard/admin/bumil/tambah')}
-              className="flex items-center justify-center gap-2 bg-pink-500 text-white px-5 py-4 rounded-2xl font-bold shadow-lg shadow-pink-100 hover:bg-pink-600 transition-all w-full sm:w-auto shrink-0 text-sm"
-            >
-              <UserPlus className="w-4 h-4" />
-              Tambah Ibu Hamil
-            </button>
+          <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
             <div className="relative w-full md:w-80">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input 
@@ -135,21 +234,80 @@ export default function DataBumilPage() {
                 className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-2 focus:ring-pink-200 outline-none transition-all"
               />
             </div>
-            <div className="flex items-center gap-1 bg-gray-50 p-1.5 rounded-2xl border border-gray-100 self-end sm:self-auto shrink-0">
-              <button
-                onClick={() => { setViewMode('card'); setCurrentPage(1); }}
-                className={`p-2.5 rounded-xl transition-all ${viewMode === 'card' ? 'bg-white shadow-sm text-pink-500' : 'text-gray-400 hover:text-gray-600'}`}
-                title="Card View"
-              >
-                <LayoutGrid className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => { setViewMode('list'); setCurrentPage(1); }}
-                className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-pink-500' : 'text-gray-400 hover:text-gray-600'}`}
-                title="List View"
-              >
-                <List className="w-5 h-5" />
-              </button>
+            
+            <div className="flex items-center gap-3 w-full md:w-auto justify-end shrink-0">
+              {/* View Mode selection */}
+              <div className="flex items-center gap-1 bg-gray-50 p-1.5 rounded-2xl border border-gray-100 shrink-0">
+                <button
+                  onClick={() => { setViewMode('card'); setCurrentPage(1); }}
+                  className={`p-2.5 rounded-xl transition-all ${viewMode === 'card' ? 'bg-white shadow-sm text-pink-500' : 'text-gray-400 hover:text-gray-600'}`}
+                  title="Card View"
+                >
+                  <LayoutGrid className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => { setViewMode('list'); setCurrentPage(1); }}
+                  className={`p-2.5 rounded-xl transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-pink-500' : 'text-gray-400 hover:text-gray-600'}`}
+                  title="List View"
+                >
+                  <List className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Dropdown Options Button next to view choice */}
+              <div className="relative shrink-0">
+                <button 
+                  onClick={() => setShowActionsMenu(!showActionsMenu)}
+                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-5 py-4 rounded-2xl font-bold shadow-lg shadow-pink-100 hover:opacity-90 active:scale-95 transition-all text-sm shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Aksi / Export</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showActionsMenu ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {showActionsMenu && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowActionsMenu(false)} />
+                    <div className="absolute right-0 top-full mt-2 bg-white/95 backdrop-blur-md border border-pink-100 rounded-2xl shadow-xl shadow-pink-100/50 py-2.5 w-60 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <button 
+                        onClick={() => { setShowActionsMenu(false); router.push('/dashboard/admin/bumil/tambah'); }}
+                        className="w-full text-left px-4 py-3 text-sm font-bold text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition-colors flex items-center gap-3 border-b border-pink-50/50"
+                      >
+                        <div className="h-8 w-8 bg-pink-100 text-pink-600 rounded-lg flex items-center justify-center shrink-0">
+                          <UserPlus className="w-4 h-4" />
+                        </div>
+                        Tambah Ibu Hamil
+                      </button>
+                      
+                      <div className="px-4 py-2 text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                        Export Data Bumil
+                      </div>
+                      
+                      <button 
+                        onClick={() => handleExport('bidan')}
+                        disabled={isExporting}
+                        className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors flex items-center gap-3 disabled:opacity-50"
+                      >
+                        <div className="h-8 w-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center shrink-0">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        Catatan Bidan
+                      </button>
+                      
+                      <button 
+                        onClick={() => handleExport('usg')}
+                        disabled={isExporting}
+                        className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors flex items-center gap-3 disabled:opacity-50"
+                      >
+                        <div className="h-8 w-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center shrink-0">
+                          <Activity className="w-4 h-4" />
+                        </div>
+                        Catatan USG
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -267,12 +425,23 @@ export default function DataBumilPage() {
                   </div>
 
                   <div className="flex items-center gap-2 justify-end pt-4 md:pt-0 mt-2 md:mt-0 border-t md:border-none border-gray-50 w-full md:w-[260px]">
-                    <button 
-                      onClick={() => router.push(`/dashboard/admin/bumil/${bumil.id}/checkup`)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-pink-500 text-white rounded-xl font-bold text-xs hover:bg-pink-600 transition-all shrink-0"
-                    >
-                      <Stethoscope className="w-4 h-4 shrink-0" /> Periksa
-                    </button>
+                    <div className="relative flex-1">
+                      <button 
+                        onClick={() => setOpenPeriksaId(openPeriksaId === bumil.id ? null : bumil.id)}
+                        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-pink-500 text-white rounded-xl font-bold text-xs hover:bg-pink-600 transition-all shrink-0"
+                      >
+                        <Stethoscope className="w-4 h-4 shrink-0" /> Periksa <ChevronDown className="w-3 h-3 shrink-0" />
+                      </button>
+                      {openPeriksaId === bumil.id && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setOpenPeriksaId(null)} />
+                          <div className="absolute bottom-full mb-2 left-0 w-full min-w-[140px] bg-white rounded-xl shadow-xl border border-pink-100 py-1.5 z-50 animate-in fade-in zoom-in-95">
+                            <button onClick={() => { setOpenPeriksaId(null); router.push(`/dashboard/admin/bumil/${bumil.id}/checkup`); }} className="w-full text-left px-3 py-2 text-xs font-bold text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition-colors">Pemeriksaan Medis</button>
+                            <button onClick={() => { setOpenPeriksaId(null); router.push(`/dashboard/admin/bumil/${bumil.id}/ttd`); }} className="w-full text-left px-3 py-2 text-xs font-bold text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition-colors">Kepatuhan TTD</button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                     <button 
                       onClick={() => router.push(`/dashboard/admin/bumil/${bumil.id}/edit`)}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-pink-50 text-pink-600 rounded-xl font-bold text-xs hover:bg-pink-100 transition-all shrink-0"
@@ -364,13 +533,24 @@ export default function DataBumilPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 pt-3 border-t border-gray-50">
-                  <button 
-                    onClick={() => router.push(`/dashboard/admin/bumil/${bumil.id}/checkup`)}
-                    className="flex-1 flex items-center justify-center gap-1 px-2 py-2.5 bg-pink-500 text-white rounded-xl font-bold text-[10px] md:text-xs hover:bg-pink-600 transition-all shadow-md shadow-pink-100"
-                  >
-                    <Stethoscope className="w-3.5 h-3.5" /> Periksa
-                  </button>
+                 <div className="flex gap-2 pt-3 border-t border-gray-50">
+                  <div className="relative flex-1">
+                    <button 
+                      onClick={() => setOpenPeriksaId(openPeriksaId === bumil.id ? null : bumil.id)}
+                      className="w-full flex items-center justify-center gap-1 px-2 py-2.5 bg-pink-500 text-white rounded-xl font-bold text-[10px] md:text-xs hover:bg-pink-600 transition-all shadow-md shadow-pink-100"
+                    >
+                      <Stethoscope className="w-3.5 h-3.5" /> Periksa <ChevronDown className="w-3 h-3 shrink-0" />
+                    </button>
+                    {openPeriksaId === bumil.id && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setOpenPeriksaId(null)} />
+                        <div className="absolute bottom-full mb-2 left-0 w-full min-w-[140px] bg-white rounded-xl shadow-xl border border-pink-100 py-1.5 z-50 animate-in fade-in zoom-in-95">
+                          <button onClick={() => { setOpenPeriksaId(null); router.push(`/dashboard/admin/bumil/${bumil.id}/checkup`); }} className="w-full text-left px-3 py-2 text-[10px] md:text-xs font-bold text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition-colors">Pemeriksaan Medis</button>
+                          <button onClick={() => { setOpenPeriksaId(null); router.push(`/dashboard/admin/bumil/${bumil.id}/ttd`); }} className="w-full text-left px-3 py-2 text-[10px] md:text-xs font-bold text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition-colors">Kepatuhan TTD</button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                   <button 
                     onClick={() => router.push(`/dashboard/admin/bumil/${bumil.id}/edit`)}
                     className="flex-1 flex items-center justify-center gap-1 px-2 py-2.5 bg-pink-50 text-pink-600 rounded-xl font-bold text-[10px] md:text-xs hover:bg-pink-100 transition-all"

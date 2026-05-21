@@ -16,7 +16,10 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const isLandingPage = pathname === '/';
   const isEdukasiPage = pathname === '/edukasi' || pathname.startsWith('/edukasi/');
-  const hideSidebar = isLandingPage || isEdukasiPage;
+  const isTandaBahayaPage = pathname === '/tanda-bahaya' || pathname.startsWith('/tanda-bahaya/');
+  const isFiturPage = pathname === '/fitur' || pathname.startsWith('/fitur/');
+  const isAdmin = user && user.role === 'superadmin';
+  const hideSidebar = isLandingPage || isEdukasiPage || isTandaBahayaPage || (isFiturPage && isAdmin);
   const hasSidebarAccess = user && (user.role === 'bidan' || user.role === 'dokter' || user.role === 'superadmin');
   const showSidebar = hasSidebarAccess && !hideSidebar;
 

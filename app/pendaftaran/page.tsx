@@ -75,7 +75,12 @@ export default function PendaftaranBumilPage() {
     const offset = selected.getTimezoneOffset();
     const localDate = new Date(selected.getTime() - (offset * 60 * 1000));
     const dateStr = localDate.toISOString().split('T')[0];
-    setFormData(prev => ({ ...prev, hpht: dateStr }));
+    
+    // Auto-calculate HPL: HPHT + 280 days
+    const suggestedHpl = new Date(selected.getTime() + 280 * 24 * 60 * 60 * 1000);
+    const hplStr = suggestedHpl.toISOString().split('T')[0];
+
+    setFormData(prev => ({ ...prev, hpht: dateStr, hpl: hplStr }));
     setIsHphtOpen(false);
   };
 
@@ -90,7 +95,12 @@ export default function PendaftaranBumilPage() {
     const offset = selected.getTimezoneOffset();
     const localDate = new Date(selected.getTime() - (offset * 60 * 1000));
     const dateStr = localDate.toISOString().split('T')[0];
-    setFormData(prev => ({ ...prev, hpl: dateStr }));
+    
+    // Auto-calculate HPHT: HPL - 280 days
+    const suggestedHpht = new Date(selected.getTime() - 280 * 24 * 60 * 60 * 1000);
+    const hphtStr = suggestedHpht.toISOString().split('T')[0];
+
+    setFormData(prev => ({ ...prev, hpl: dateStr, hpht: hphtStr }));
     setIsHplOpen(false);
   };
 
@@ -114,19 +124,6 @@ export default function PendaftaranBumilPage() {
       checkExistingData();
     }
   }, [user]);
-
-  // Auto-calculate suggested HPL based on HPHT (HPHT + 280 days Naegele's rule)
-  useEffect(() => {
-    if (formData.hpht) {
-      const hphtDate = new Date(formData.hpht);
-      if (!isNaN(hphtDate.getTime())) {
-        const suggestedHpl = new Date(hphtDate.getTime() + 280 * 24 * 60 * 60 * 1000);
-        setFormData(prev => ({ ...prev, hpl: suggestedHpl.toISOString().split('T')[0] }));
-      }
-    } else {
-      setFormData(prev => ({ ...prev, hpl: '' }));
-    }
-  }, [formData.hpht]);
 
   const checkExistingData = async () => {
     try {

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import PuskesmasList from '@/components/PuskesmasList';
 import { 
   LineChart, 
   Line, 
@@ -27,7 +28,8 @@ import {
   LogOut,
   Home,
   BarChart3,
-  BookOpen
+  BookOpen,
+  ShieldAlert
 } from 'lucide-react';
 import { bumilApi } from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -205,7 +207,7 @@ export default function BumilDashboard() {
       <div className="max-w-7xl mx-auto space-y-8">
         
         <div className="flex items-center justify-between bg-white px-6 py-4 rounded-3xl shadow-sm border border-pink-100/50">
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center gap-6">
             <Link href="/dashboard/bumil" className="flex items-center gap-2 text-pink-500 font-bold hover:opacity-80 transition-all text-sm">
               <Home className="w-4 h-4 text-pink-500" />
               <span>Dashboard</span>
@@ -218,10 +220,14 @@ export default function BumilDashboard() {
               <BookOpen className="w-4 h-4 text-pink-400" />
               <span>Edukasi KIA</span>
             </Link>
+            <Link href="/tanda-bahaya" className="flex items-center gap-2 text-gray-600 hover:text-pink-500 font-bold transition-all text-sm">
+              <ShieldAlert className="w-4 h-4 text-pink-400" />
+              <span>Buku Saku Tanda Bahaya</span>
+            </Link>
           </div>
           <button 
             onClick={logout}
-            className="flex items-center gap-2 text-gray-400 hover:text-red-500 font-bold transition-all text-sm"
+            className="flex items-center gap-2 text-gray-400 hover:text-red-500 font-bold transition-all text-sm shrink-0"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Keluar</span>
@@ -255,6 +261,27 @@ export default function BumilDashboard() {
               <CheckCircle2 className="w-6 h-6" />
             </div>
           </div>
+        </div>
+
+        {/* Interactive Danger Signs Digital Pocket Book Banner */}
+        <div className="bg-gradient-to-r from-red-500 to-rose-600 rounded-[32px] p-6 sm:p-8 text-white shadow-xl shadow-red-200 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+          <div className="space-y-2 max-w-2xl relative z-10">
+            <span className="inline-flex items-center gap-1.5 bg-white/20 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider animate-pulse">
+              <AlertCircle className="w-3.5 h-3.5" /> PENTING UNTUK IBU & JANIN
+            </span>
+            <h2 className="text-lg sm:text-2xl font-black tracking-tight">
+              Buku Saku Digital Tanda Bahaya Kehamilan (Bisa Bersuara)
+            </h2>
+            <p className="text-xs sm:text-sm text-red-50 font-semibold leading-relaxed">
+              Khusus untuk Ibu yang malas membaca atau ingin informasi praktis, halaman ini bisa membacakan tanda bahaya kehamilan secara langsung dengan suara bahasa Indonesia, lengkap dengan kuis harian interaktif!
+            </p>
+          </div>
+          <Link 
+            href="/tanda-bahaya"
+            className="w-full md:w-auto bg-white text-red-650 hover:bg-red-50 px-6 py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg text-center whitespace-nowrap active:scale-[0.98] transition-transform relative z-10"
+          >
+            Buka Buku Saku Suara →
+          </Link>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
@@ -513,6 +540,8 @@ export default function BumilDashboard() {
              </div>
           </div>
         </div>
+
+        <PuskesmasList userLat={profile.latitude} userLon={profile.longitude} />
 
       </div>
     </div>
