@@ -3,19 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
-import { 
-  ArrowLeft, 
-  Save, 
-  User, 
-  Calendar, 
-  Activity, 
-  Heart, 
-  TrendingUp, 
-  Scale, 
+import {
+  ArrowLeft,
+  Save,
+  User,
+  Calendar,
+  Activity,
+  Heart,
+  TrendingUp,
+  Scale,
   Droplets,
-  Plus, 
-  Trash2, 
-  Stethoscope, 
+  Plus,
+  Trash2,
+  Stethoscope,
   AlertCircle,
   Sparkles,
   ChevronRight,
@@ -37,7 +37,7 @@ export default function BidanBumilCheckupPage() {
   const [doctorCheckups, setDoctorCheckups] = useState<any[]>([]);
   const [isFetching, setIsFetching] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // View selector state: 'catat_bidan' | 'catat_dokter' | 'histori'
   const [currentView, setCurrentView] = useState<'catat_bidan' | 'catat_dokter' | 'histori'>('catat_bidan');
 
@@ -60,7 +60,7 @@ export default function BidanBumilCheckupPage() {
   // 1. Midwife Form State
   const [form, setForm] = useState({
     checkup_date: new Date().toISOString().split('T')[0],
-    week: '28',
+    minggu: '28',
     hb: '',
     hb_status: 'Normal',
     sys: '',
@@ -78,7 +78,7 @@ export default function BidanBumilCheckupPage() {
     dokter_name: '',
     checkup_date: new Date().toISOString().split('T')[0],
     konsep: 'Normal',
-    
+
     // Keadaan Umum (Pemeriksaan Fisik)
     konjungtiva: 'Tidak Anemia',
     sklera: 'Tidak Ikterik',
@@ -90,25 +90,25 @@ export default function BidanBumilCheckupPage() {
     dada_paru: 'Normal',
     perut: 'Normal',
     tungkai: 'Normal',
-    
+
     // USG Trimester I
     hpht: '',
     keteraturan_haid: 'Teratur',
-    usia_kehamilan_hpht_weeks: '',
+    usia_kehamilan_hpht_minggu: '',
     hpl_hpht: '',
-    usia_kehamilan_usg_weeks: '',
+    usia_kehamilan_usg_minggu: '',
     hpl_usg: '',
-    
+
     jumlah_gs: 'Tunggal',
     diameter_gs: '',
-    diameter_gs_weeks: '',
-    diameter_gs_days: '',
-    
+    diameter_gs_minggu: '',
+    diameter_gs_hari: '',
+
     jumlah_bayi: 'Tunggal',
     crl: '',
-    crl_weeks: '',
-    crl_days: '',
-    
+    crl_minggu: '',
+    crl_hari: '',
+
     letak_kehamilan: 'Intrauterin',
     pulsasi_jantung: 'Tampak',
     kecurigaan_abnormal: 'Tidak',
@@ -146,7 +146,7 @@ export default function BidanBumilCheckupPage() {
 
   const daysList = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 
-  const getDaysInMonth = (year: number, month: number) => {
+  const getHariInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate();
   };
 
@@ -192,13 +192,13 @@ export default function BidanBumilCheckupPage() {
     const offset = selected.getTimezoneOffset();
     const localDate = new Date(selected.getTime() - (offset * 60 * 1000));
     const formattedDate = localDate.toISOString().split('T')[0];
-    
+
     // Auto-calculate suggested HPL based on HPHT (HPHT + 280 days Naegele's rule)
     const suggestedHpl = new Date(localDate.getTime() + 280 * 24 * 60 * 60 * 1000);
     const suggestedHplStr = suggestedHpl.toISOString().split('T')[0];
 
-    setDocForm(prev => ({ 
-      ...prev, 
+    setDocForm(prev => ({
+      ...prev,
       hpht: formattedDate,
       hpl_hpht: suggestedHplStr
     }));
@@ -290,9 +290,9 @@ export default function BidanBumilCheckupPage() {
   }, [form.djj]);
 
   useEffect(() => {
-    if (form.tfu && form.week) {
+    if (form.tfu && form.minggu) {
       const tfuVal = parseFloat(form.tfu);
-      const weekVal = parseInt(form.week);
+      const weekVal = parseInt(form.minggu);
       if (!isNaN(tfuVal) && !isNaN(weekVal)) {
         if (weekVal < 20) {
           setForm(prev => ({ ...prev, tfu_status: 'Sesuai' }));
@@ -310,21 +310,19 @@ export default function BidanBumilCheckupPage() {
         }
       }
     }
-  }, [form.tfu, form.week]);
+  }, [form.tfu, form.minggu]);
 
-  // Automated USG pregnancy age HPL calculations based on input weeks
   useEffect(() => {
-    if (docForm.checkup_date && docForm.usia_kehamilan_usg_weeks) {
+    if (docForm.checkup_date && docForm.usia_kehamilan_usg_minggu) {
       const checkupDate = new Date(docForm.checkup_date);
-      const usgWeeks = parseInt(docForm.usia_kehamilan_usg_weeks);
-      if (!isNaN(usgWeeks)) {
-        // Calculate remaining pregnancy days out of 280 days
-        const remainingDays = (40 - usgWeeks) * 7;
-        const calculatedHpl = new Date(checkupDate.getTime() + remainingDays * 24 * 60 * 60 * 1000);
+      const usgMinggu = parseInt(docForm.usia_kehamilan_usg_minggu);
+      if (!isNaN(usgMinggu)) {
+        const remainingHari = (40 - usgMinggu) * 7;
+        const calculatedHpl = new Date(checkupDate.getTime() + remainingHari * 24 * 60 * 60 * 1000);
         setDocForm(prev => ({ ...prev, hpl_usg: calculatedHpl.toISOString().split('T')[0] }));
       }
     }
-  }, [docForm.checkup_date, docForm.usia_kehamilan_usg_weeks]);
+  }, [docForm.checkup_date, docForm.usia_kehamilan_usg_minggu]);
 
   const fetchData = async () => {
     try {
@@ -337,24 +335,24 @@ export default function BidanBumilCheckupPage() {
       setBumil(bumilRes.data);
       setCheckups(checkupRes.data || []);
       setDoctorCheckups(docCheckupRes.data || []);
-      
-      // Auto-suggest pregnancy week based on HPL if available
+
+      // Auto-suggest pregnancy minggu based on HPL if available
       if (bumilRes.data.hpl) {
         const hplDate = new Date(bumilRes.data.hpl);
         const today = new Date();
         const diffMs = hplDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-        const daysPregnant = Math.max(0, 280 - diffDays);
+        const diffHari = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        const daysPregnant = Math.max(0, 280 - diffHari);
         const currentWeek = Math.floor(daysPregnant / 7);
         if (currentWeek > 0 && currentWeek <= 42) {
-          setForm(prev => ({ ...prev, week: currentWeek.toString() }));
+          setForm(prev => ({ ...prev, minggu: currentWeek.toString() }));
         }
       }
 
       // Populate doctor HPHT from Bumil profile if profile has it
       if (bumilRes.data.hpht) {
-        setDocForm(prev => ({ 
-          ...prev, 
+        setDocForm(prev => ({
+          ...prev,
           hpht: bumilRes.data.hpht.split('T')[0],
           hpl_hpht: bumilRes.data.hpl ? bumilRes.data.hpl.split('T')[0] : ''
         }));
@@ -388,7 +386,7 @@ export default function BidanBumilCheckupPage() {
     try {
       const payload = {
         checkup_date: form.checkup_date,
-        week: form.week,
+        minggu: form.minggu,
         hb: parseFloat(form.hb),
         hb_status: form.hb_status,
         tekanan_darah: `${form.sys}/${form.dia}`,
@@ -402,7 +400,7 @@ export default function BidanBumilCheckupPage() {
 
       await bumilApi.createCheckup(id as string, payload);
       toast.success('Pemeriksaan kebidanan berhasil disimpan!');
-      
+
       setForm(prev => ({
         ...prev,
         hb: '',
@@ -433,14 +431,14 @@ export default function BidanBumilCheckupPage() {
     try {
       const payload = {
         ...docForm,
-        usia_kehamilan_hpht_weeks: docForm.usia_kehamilan_hpht_weeks ? parseInt(docForm.usia_kehamilan_hpht_weeks) : null,
-        usia_kehamilan_usg_weeks: docForm.usia_kehamilan_usg_weeks ? parseInt(docForm.usia_kehamilan_usg_weeks) : null,
+        usia_kehamilan_hpht_minggu: docForm.usia_kehamilan_hpht_minggu ? parseInt(docForm.usia_kehamilan_hpht_minggu) : null,
+        usia_kehamilan_usg_minggu: docForm.usia_kehamilan_usg_minggu ? parseInt(docForm.usia_kehamilan_usg_minggu) : null,
         diameter_gs: docForm.diameter_gs ? parseFloat(docForm.diameter_gs) : null,
-        diameter_gs_weeks: docForm.diameter_gs_weeks ? parseInt(docForm.diameter_gs_weeks) : null,
-        diameter_gs_days: docForm.diameter_gs_days ? parseInt(docForm.diameter_gs_days) : null,
+        diameter_gs_minggu: docForm.diameter_gs_minggu ? parseInt(docForm.diameter_gs_minggu) : null,
+        diameter_gs_hari: docForm.diameter_gs_hari ? parseInt(docForm.diameter_gs_hari) : null,
         crl: docForm.crl ? parseFloat(docForm.crl) : null,
-        crl_weeks: docForm.crl_weeks ? parseInt(docForm.crl_weeks) : null,
-        crl_days: docForm.crl_days ? parseInt(docForm.crl_days) : null,
+        crl_minggu: docForm.crl_minggu ? parseInt(docForm.crl_minggu) : null,
+        crl_hari: docForm.crl_hari ? parseInt(docForm.crl_hari) : null,
         hpht: docForm.hpht || null,
         hpl_hpht: docForm.hpl_hpht || null,
         hpl_usg: docForm.hpl_usg || null
@@ -448,17 +446,17 @@ export default function BidanBumilCheckupPage() {
 
       await bumilApi.createDoctorCheckup(id as string, payload);
       toast.success('Pemeriksaan Dokter & USG berhasil disimpan!');
-      
+
       // Reset USG input parameters but preserve general fields
       setDocForm(prev => ({
         ...prev,
-        usia_kehamilan_usg_weeks: '',
+        usia_kehamilan_usg_minggu: '',
         diameter_gs: '',
-        diameter_gs_weeks: '',
-        diameter_gs_days: '',
+        diameter_gs_minggu: '',
+        diameter_gs_hari: '',
         crl: '',
-        crl_weeks: '',
-        crl_days: '',
+        crl_minggu: '',
+        crl_hari: '',
         kecurigaan_abnormal_detail: ''
       }));
 
@@ -499,7 +497,7 @@ export default function BidanBumilCheckupPage() {
     return (
       <div className="min-h-screen bg-pink-50 flex items-center justify-center">
         <div className="animate-pulse text-pink-500 font-bold text-xl text-center">
-          Mengambil data klinis ibu hamil...<br/>
+          Mengambil data klinis ibu hamil...<br />
           <span className="text-sm font-normal text-gray-400 italic">Harap tunggu sebentar</span>
         </div>
       </div>
@@ -521,13 +519,13 @@ export default function BidanBumilCheckupPage() {
       `}</style>
 
       <div className="max-w-[800px] mx-auto space-y-8">
-        
+
         {/* Header & Back Action */}
         <div className="bg-white p-6 md:px-8 md:py-6 rounded-3xl shadow-sm border border-pink-100 space-y-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
-              <button 
-                onClick={() => router.push('/dashboard/admin/bumil')} 
+              <button
+                onClick={() => router.push('/dashboard/admin/bumil')}
                 className="h-12 w-12 bg-white border border-gray-100 rounded-2xl flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm shrink-0 self-start md:self-auto"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
@@ -539,7 +537,7 @@ export default function BidanBumilCheckupPage() {
                   </span>
                   <h1 className="text-xl md:text-2xl font-black text-gray-900">Pemeriksaan Medis</h1>
                 </div>
-                
+
                 <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 bg-pink-50/40 border border-pink-100/50 p-4 rounded-[24px] w-full flex-wrap">
                   <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-600 shrink-0">
@@ -583,11 +581,10 @@ export default function BidanBumilCheckupPage() {
                 <button
                   type="button"
                   onClick={() => setCurrentView('catat_bidan')}
-                  className={`flex-1 py-3.5 px-6 rounded-[18px] text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm ${
-                    currentView === 'catat_bidan' 
-                      ? 'bg-white text-pink-600 border border-pink-100/50' 
+                  className={`flex-1 py-3.5 px-6 rounded-[18px] text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm ${currentView === 'catat_bidan'
+                      ? 'bg-white text-pink-600 border border-pink-100/50'
                       : 'text-gray-400 hover:text-pink-500 hover:bg-white/50 border border-transparent'
-                  }`}
+                    }`}
                 >
                   <Heart className="w-4 h-4" /> Catat Bidan
                 </button>
@@ -596,11 +593,10 @@ export default function BidanBumilCheckupPage() {
                 <button
                   type="button"
                   onClick={() => setCurrentView('catat_dokter')}
-                  className={`flex-1 py-3.5 px-6 rounded-[18px] text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm ${
-                    currentView === 'catat_dokter' 
-                      ? 'bg-white text-pink-600 border border-pink-100/50' 
+                  className={`flex-1 py-3.5 px-6 rounded-[18px] text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm ${currentView === 'catat_dokter'
+                      ? 'bg-white text-pink-600 border border-pink-100/50'
                       : 'text-gray-400 hover:text-pink-500 hover:bg-white/50 border border-transparent'
-                  }`}
+                    }`}
                 >
                   <Stethoscope className="w-4 h-4" /> Catat USG
                 </button>
@@ -608,11 +604,10 @@ export default function BidanBumilCheckupPage() {
               <button
                 type="button"
                 onClick={() => setCurrentView('histori')}
-                className={`flex-1 py-3.5 px-6 rounded-[18px] text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm ${
-                  currentView === 'histori' 
-                    ? 'bg-white text-pink-600 border border-pink-100/50' 
+                className={`flex-1 py-3.5 px-6 rounded-[18px] text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm ${currentView === 'histori'
+                    ? 'bg-white text-pink-600 border border-pink-100/50'
                     : 'text-gray-400 hover:text-pink-500 hover:bg-white/50 border border-transparent'
-                }`}
+                  }`}
               >
                 <Clock className="w-4 h-4" /> Histori Medis
               </button>
@@ -622,7 +617,7 @@ export default function BidanBumilCheckupPage() {
 
         {/* Main Stack Content */}
         <div className="space-y-6">
-          
+
           {/* VIEW 1: CATAT PEMERIKSAAN BIDAN */}
           {currentView === 'catat_bidan' && (
             <div className="bg-white rounded-[36px] shadow-sm border border-pink-100 overflow-hidden p-6 md:p-8 animate-in fade-in duration-300">
@@ -640,24 +635,24 @@ export default function BidanBumilCheckupPage() {
 
               {/* FORM 1: MIDWIFE CHECKUP FORM */}
               <form onSubmit={handleSubmitCheckup} className="space-y-5">
-                
+
                 {/* Date & Week */}
                 <div className="bg-pink-50/10 p-5 rounded-[28px] border border-pink-100/30 space-y-4 shadow-sm">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Tanggal Pemeriksaan</label>
                       <div className="relative rounded-2xl bg-white border border-gray-100 flex items-center shadow-sm focus-within:border-pink-300 transition-all">
-                        <button 
+                        <button
                           type="button"
                           onClick={() => setIsCalendarOpen(!isCalendarOpen)}
                           className="pl-4 pr-1 text-pink-500 shrink-0 hover:scale-110 active:scale-95 transition-all outline-none"
                         >
                           <Calendar className="w-4 h-4" />
                         </button>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           readOnly
-                          value={form.checkup_date ? new Date(form.checkup_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'} 
+                          value={form.checkup_date ? new Date(form.checkup_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
                           onClick={() => setIsCalendarOpen(true)}
                           className="w-full pl-2 pr-4 py-3.5 rounded-2xl text-xs font-bold text-gray-700 outline-none border-none focus:ring-0 bg-transparent cursor-pointer"
                         />
@@ -676,7 +671,7 @@ export default function BidanBumilCheckupPage() {
                               </div>
                               <div className="grid grid-cols-7 gap-1">
                                 {Array.from({ length: getFirstDayOfMonth(calendarDate.getFullYear(), calendarDate.getMonth()) }).map((_, i) => <div key={`empty-${i}`} />)}
-                                {Array.from({ length: getDaysInMonth(calendarDate.getFullYear(), calendarDate.getMonth()) }).map((_, i) => {
+                                {Array.from({ length: getHariInMonth(calendarDate.getFullYear(), calendarDate.getMonth()) }).map((_, i) => {
                                   const dayNum = i + 1;
                                   const isSelected = form.checkup_date && new Date(form.checkup_date).getDate() === dayNum && new Date(form.checkup_date).getMonth() === calendarDate.getMonth() && new Date(form.checkup_date).getFullYear() === calendarDate.getFullYear();
                                   const isToday = new Date().getDate() === dayNum && new Date().getMonth() === calendarDate.getMonth() && new Date().getFullYear() === calendarDate.getFullYear();
@@ -685,9 +680,8 @@ export default function BidanBumilCheckupPage() {
                                       key={`day-${dayNum}`}
                                       type="button"
                                       onClick={() => handleSelectDay(dayNum)}
-                                      className={`py-1.5 rounded-xl text-center text-xs font-bold transition-all ${
-                                        isSelected ? 'bg-pink-500 text-white shadow-md font-black' : isToday ? 'bg-pink-50 text-pink-600 border border-pink-200' : 'hover:bg-gray-50 text-gray-700'
-                                      }`}
+                                      className={`py-1.5 rounded-xl text-center text-xs font-bold transition-all ${isSelected ? 'bg-pink-500 text-white shadow-md font-black' : isToday ? 'bg-pink-50 text-pink-600 border border-pink-200' : 'hover:bg-gray-50 text-gray-700'
+                                        }`}
                                     >
                                       {dayNum}
                                     </button>
@@ -705,14 +699,14 @@ export default function BidanBumilCheckupPage() {
                         <div className="pl-4 pr-1 text-pink-500 shrink-0">
                           <Clock className="w-4 h-4" />
                         </div>
-                        <input 
-                          type="number" 
-                          name="week" 
-                          value={form.week} 
-                          onChange={handleInputChange} 
-                          required 
-                          min={1} 
-                          max={45} 
+                        <input
+                          type="number"
+                          name="minggu"
+                          value={form.minggu}
+                          onChange={handleInputChange}
+                          required
+                          min={1}
+                          max={45}
                           placeholder="Contoh: 28"
                           className="w-full pl-2 pr-16 py-3.5 rounded-2xl text-xs font-black text-gray-755 outline-none border-none focus:ring-0 bg-transparent transition-all"
                         />
@@ -729,17 +723,16 @@ export default function BidanBumilCheckupPage() {
                       <Droplets className="w-4 h-4 text-blue-500 fill-current" /> Hemoglobin (HB)
                     </span>
                     {form.hb ? (
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 ${
-                        form.hb_status === 'Normal' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-650 border-red-200'
-                      }`}>
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 ${form.hb_status === 'Normal' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-650 border-red-200'
+                        }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${form.hb_status === 'Normal' ? 'bg-green-500' : 'bg-red-500'}`} />
                         {form.hb_status === 'Normal' ? 'NORMAL' : 'ANEMIA'}
                       </span>
                     ) : <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full uppercase">Menunggu Input...</span>}
                   </div>
                   <div className="relative rounded-2xl bg-white border border-gray-100 flex items-center shadow-sm">
-                    <input 
-                      type="number" step="0.1" name="hb" value={form.hb} onChange={handleInputChange} required placeholder="Contoh: 11.3" 
+                    <input
+                      type="number" step="0.1" name="hb" value={form.hb} onChange={handleInputChange} required placeholder="Contoh: 11.3"
                       className="w-full px-5 py-4 rounded-2xl text-sm font-bold text-gray-700 outline-none border-none focus:ring-2 focus:ring-blue-100 transition-all bg-transparent"
                     />
                     <span className="absolute right-5 text-xs font-bold text-gray-400 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100">g/dL</span>
@@ -753,30 +746,28 @@ export default function BidanBumilCheckupPage() {
                       <Activity className="w-4 h-4 text-rose-500" /> Tekanan Darah (SYS/DIA)
                     </span>
                     {form.sys && form.dia ? (
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${
-                        form.tekanan_darah_status === 'Normal' ? 'bg-green-50 text-green-600 border-green-200' : 
-                        form.tekanan_darah_status === 'Pantau' ? 'bg-yellow-50 text-yellow-600 border-yellow-200' : 'bg-red-50 text-red-650 border-red-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          form.tekanan_darah_status === 'Normal' ? 'bg-green-500' : 
-                          form.tekanan_darah_status === 'Pantau' ? 'bg-yellow-500' : 'bg-red-500'
-                        }`} />
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${form.tekanan_darah_status === 'Normal' ? 'bg-green-50 text-green-600 border-green-200' :
+                          form.tekanan_darah_status === 'Pantau' ? 'bg-yellow-50 text-yellow-600 border-yellow-200' : 'bg-red-50 text-red-650 border-red-200'
+                        }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${form.tekanan_darah_status === 'Normal' ? 'bg-green-500' :
+                            form.tekanan_darah_status === 'Pantau' ? 'bg-yellow-500' : 'bg-red-500'
+                          }`} />
                         {form.tekanan_darah_status === 'Normal' ? 'NORMAL' : form.tekanan_darah_status === 'Pantau' ? 'PANTAU' : 'HIPERTENSI'}
                       </span>
                     ) : <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full uppercase">Menunggu Input...</span>}
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div className="relative rounded-2xl bg-white border border-gray-100 flex items-center shadow-sm">
-                      <input 
-                        type="number" name="sys" value={form.sys} onChange={handleInputChange} required placeholder="Sistolik (e.g. 120)" 
-                        className="w-full px-5 py-4 rounded-2xl text-sm font-bold text-gray-700 outline-none border-none focus:ring-2 focus:ring-rose-100 transition-all bg-transparent"
+                      <input
+                        type="number" name="sys" value={form.sys} onChange={handleInputChange} required placeholder="Sistolik (Contoh: 120)"
+                        className="w-full pl-5 pr-14 py-4 rounded-2xl text-sm font-bold text-gray-700 outline-none border-none focus:ring-2 focus:ring-rose-100 transition-all bg-transparent"
                       />
                       <span className="absolute right-4 text-[10px] font-bold text-gray-400">mmHg</span>
                     </div>
                     <div className="relative rounded-2xl bg-white border border-gray-100 flex items-center shadow-sm">
-                      <input 
-                        type="number" name="dia" value={form.dia} onChange={handleInputChange} required placeholder="Diastolik (e.g. 80)" 
-                        className="w-full px-5 py-4 rounded-2xl text-sm font-bold text-gray-700 outline-none border-none focus:ring-2 focus:ring-rose-100 transition-all bg-transparent"
+                      <input
+                        type="number" name="dia" value={form.dia} onChange={handleInputChange} required placeholder="Diastolik (Contoh: 80)"
+                        className="w-full pl-5 pr-14 py-4 rounded-2xl text-sm font-bold text-gray-700 outline-none border-none focus:ring-2 focus:ring-rose-100 transition-all bg-transparent"
                       />
                       <span className="absolute right-4 text-[10px] font-bold text-gray-400">mmHg</span>
                     </div>
@@ -790,17 +781,16 @@ export default function BidanBumilCheckupPage() {
                       <TrendingUp className="w-4 h-4 text-amber-500" /> Tinggi Fundus (TFU)
                     </span>
                     {form.tfu ? (
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${
-                        form.tfu_status === 'Sesuai' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-yellow-50 text-yellow-600 border-yellow-200'
-                      }`}>
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${form.tfu_status === 'Sesuai' ? 'bg-blue-50 text-blue-600 border-blue-200' : 'bg-yellow-50 text-yellow-600 border-yellow-200'
+                        }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${form.tfu_status === 'Sesuai' ? 'bg-blue-500' : 'bg-yellow-500'}`} />
                         {form.tfu_status === 'Sesuai' ? 'SESUAI' : 'PANTAU'}
                       </span>
                     ) : <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full uppercase">Menunggu Input...</span>}
                   </div>
                   <div className="relative rounded-2xl bg-white border border-gray-100 flex items-center shadow-sm">
-                    <input 
-                      type="number" step="0.1" name="tfu" value={form.tfu} onChange={handleInputChange} required placeholder="Contoh: 26" 
+                    <input
+                      type="number" step="0.1" name="tfu" value={form.tfu} onChange={handleInputChange} required placeholder="Contoh: 26"
                       className="w-full px-5 py-4 rounded-2xl text-sm font-bold text-gray-700 outline-none border-none focus:ring-2 focus:ring-amber-100 transition-all bg-transparent"
                     />
                     <span className="absolute right-5 text-xs font-bold text-gray-400 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100">cm</span>
@@ -814,17 +804,16 @@ export default function BidanBumilCheckupPage() {
                       <Heart className="w-4 h-4 text-emerald-500" /> Denyut Jantung Janin (DJJ)
                     </span>
                     {form.djj ? (
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${
-                        form.djj_status === 'Baik' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-650 border-red-200'
-                      }`}>
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${form.djj_status === 'Baik' ? 'bg-green-50 text-green-600 border-green-200' : 'bg-red-50 text-red-650 border-red-200'
+                        }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${form.djj_status === 'Baik' ? 'bg-green-500' : 'bg-red-500'}`} />
                         {form.djj_status === 'Baik' ? 'BAIK' : 'GAWAT JANIN'}
                       </span>
                     ) : <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full uppercase">Menunggu Input...</span>}
                   </div>
                   <div className="relative rounded-2xl bg-white border border-gray-100 flex items-center shadow-sm">
-                    <input 
-                      type="number" name="djj" value={form.djj} onChange={handleInputChange} required placeholder="Contoh: 142" 
+                    <input
+                      type="number" name="djj" value={form.djj} onChange={handleInputChange} required placeholder="Contoh: 142"
                       className="w-full px-5 py-4 rounded-2xl text-sm font-bold text-gray-700 outline-none border-none focus:ring-2 focus:ring-emerald-100 transition-all bg-transparent"
                     />
                     <span className="absolute right-5 text-xs font-bold text-gray-400 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100">bpm</span>
@@ -839,8 +828,8 @@ export default function BidanBumilCheckupPage() {
                     </span>
                   </div>
                   <div className="relative rounded-2xl bg-white border border-gray-100 flex items-center shadow-sm">
-                    <input 
-                      type="number" step="0.1" name="weight" value={form.weight} onChange={handleInputChange} required placeholder="Contoh: 65.5" 
+                    <input
+                      type="number" step="0.1" name="weight" value={form.weight} onChange={handleInputChange} required placeholder="Contoh: 65.5"
                       className="w-full px-5 py-4 rounded-2xl text-sm font-bold text-gray-700 outline-none border-none focus:ring-2 focus:ring-indigo-100 transition-all bg-transparent"
                     />
                     <span className="absolute right-5 text-xs font-bold text-gray-400 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100">kg</span>
@@ -877,17 +866,17 @@ export default function BidanBumilCheckupPage() {
 
               {/* FORM 2: DOCTOR / USG EXAM FORM */}
               <form onSubmit={handleSubmitDocCheckup} className="space-y-6">
-                
+
                 {/* Doctor Info Section */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-pink-50/10 p-4 rounded-3xl border border-pink-100/20">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Nama Dokter</label>
-                    <input 
-                      type="text" 
-                      name="dokter_name" 
-                      value={docForm.dokter_name} 
-                      onChange={handleDocInputChange} 
-                      required 
+                    <input
+                      type="text"
+                      name="dokter_name"
+                      value={docForm.dokter_name}
+                      onChange={handleDocInputChange}
+                      required
                       placeholder="dr. Sp.OG / Umum"
                       className="w-full px-4 py-3 border border-gray-100 bg-white rounded-2xl text-xs font-bold text-gray-700 shadow-sm focus:ring-2 focus:ring-pink-100 outline-none"
                     />
@@ -895,17 +884,17 @@ export default function BidanBumilCheckupPage() {
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Tanggal Periksa</label>
                     <div className="relative rounded-2xl bg-white border border-gray-100 flex items-center shadow-sm focus-within:border-pink-300 transition-all">
-                      <button 
+                      <button
                         type="button"
                         onClick={() => setIsDocCalendarOpen(!isDocCalendarOpen)}
                         className="pl-4 pr-1 text-pink-500 shrink-0 hover:scale-110 active:scale-95 transition-all outline-none"
                       >
                         <Calendar className="w-4 h-4" />
                       </button>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         readOnly
-                        value={docForm.checkup_date ? new Date(docForm.checkup_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'} 
+                        value={docForm.checkup_date ? new Date(docForm.checkup_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
                         onClick={() => setIsDocCalendarOpen(true)}
                         className="w-full pl-2 pr-4 py-3 text-xs font-bold text-gray-700 outline-none border-none focus:ring-0 bg-transparent cursor-pointer"
                       />
@@ -924,7 +913,7 @@ export default function BidanBumilCheckupPage() {
                             </div>
                             <div className="grid grid-cols-7 gap-1">
                               {Array.from({ length: getFirstDayOfMonth(calendarDateDoc.getFullYear(), calendarDateDoc.getMonth()) }).map((_, i) => <div key={`empty-${i}`} />)}
-                              {Array.from({ length: getDaysInMonth(calendarDateDoc.getFullYear(), calendarDateDoc.getMonth()) }).map((_, i) => {
+                              {Array.from({ length: getHariInMonth(calendarDateDoc.getFullYear(), calendarDateDoc.getMonth()) }).map((_, i) => {
                                 const dayNum = i + 1;
                                 const isSelected = docForm.checkup_date && new Date(docForm.checkup_date).getDate() === dayNum && new Date(docForm.checkup_date).getMonth() === calendarDateDoc.getMonth() && new Date(docForm.checkup_date).getFullYear() === calendarDateDoc.getFullYear();
                                 const isToday = new Date().getDate() === dayNum && new Date().getMonth() === calendarDateDoc.getMonth() && new Date().getFullYear() === calendarDateDoc.getFullYear();
@@ -933,9 +922,8 @@ export default function BidanBumilCheckupPage() {
                                     key={`day-doc-${dayNum}`}
                                     type="button"
                                     onClick={() => handleSelectDayDoc(dayNum)}
-                                    className={`py-1.5 rounded-xl text-center text-xs font-bold transition-all ${
-                                      isSelected ? 'bg-pink-500 text-white shadow-md font-black' : isToday ? 'bg-pink-50 text-pink-600 border border-pink-200' : 'hover:bg-gray-50 text-gray-700'
-                                    }`}
+                                    className={`py-1.5 rounded-xl text-center text-xs font-bold transition-all ${isSelected ? 'bg-pink-500 text-white shadow-md font-black' : isToday ? 'bg-pink-50 text-pink-600 border border-pink-200' : 'hover:bg-gray-50 text-gray-700'
+                                      }`}
                                   >
                                     {dayNum}
                                   </button>
@@ -953,9 +941,9 @@ export default function BidanBumilCheckupPage() {
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest pl-1">Kesimpulan Risiko Kehamilan</label>
                   <div className="relative">
-                    <select 
-                      name="konsep" 
-                      value={docForm.konsep} 
+                    <select
+                      name="konsep"
+                      value={docForm.konsep}
                       onChange={handleDocInputChange}
                       className="w-full appearance-none pr-10 px-4 py-3.5 border border-gray-100 bg-gray-50 focus:bg-white rounded-2xl text-xs font-bold text-gray-700 focus:ring-2 focus:ring-pink-100 outline-none transition-all"
                     >
@@ -973,7 +961,7 @@ export default function BidanBumilCheckupPage() {
                   <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
                     🩺 Pemeriksaan Fisik (Keadaan Umum)
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[
                       { label: 'Konjungtiva', name: 'konjungtiva', options: ['Tidak Anemia', 'Anemia'] },
@@ -997,9 +985,8 @@ export default function BidanBumilCheckupPage() {
                                 key={opt}
                                 type="button"
                                 onClick={() => setDocForm(prev => ({ ...prev, [field.name]: opt }))}
-                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${
-                                  isSel ? 'bg-pink-500 text-white shadow-sm font-black' : 'text-gray-400 hover:text-pink-500'
-                                }`}
+                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${isSel ? 'bg-pink-500 text-white shadow-sm font-black' : 'text-gray-400 hover:text-pink-500'
+                                  }`}
                               >
                                 {opt}
                               </button>
@@ -1023,8 +1010,8 @@ export default function BidanBumilCheckupPage() {
                       <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">HPHT</label>
                       <div className="relative rounded-2xl bg-white border border-gray-100 flex items-center shadow-sm focus-within:border-pink-300">
                         <button type="button" onClick={() => setIsDocHphtOpen(!isDocHphtOpen)} className="pl-4 pr-1 text-pink-500 shrink-0"><Calendar className="w-4 h-4" /></button>
-                        <input 
-                          type="text" readOnly value={docForm.hpht ? new Date(docForm.hpht).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pilih Tanggal'} 
+                        <input
+                          type="text" readOnly value={docForm.hpht ? new Date(docForm.hpht).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pilih Tanggal'}
                           onClick={() => setIsDocHphtOpen(true)} className="w-full pl-2 pr-4 py-2.5 rounded-2xl text-xs font-bold text-gray-700 bg-transparent cursor-pointer border-none outline-none"
                         />
                         {isDocHphtOpen && (
@@ -1038,7 +1025,7 @@ export default function BidanBumilCheckupPage() {
                               </div>
                               <div className="grid grid-cols-7 gap-1">
                                 {Array.from({ length: getFirstDayOfMonth(calendarDateDocHpht.getFullYear(), calendarDateDocHpht.getMonth()) }).map((_, i) => <div key={`empty-${i}`} />)}
-                                {Array.from({ length: getDaysInMonth(calendarDateDocHpht.getFullYear(), calendarDateDocHpht.getMonth()) }).map((_, i) => {
+                                {Array.from({ length: getHariInMonth(calendarDateDocHpht.getFullYear(), calendarDateDocHpht.getMonth()) }).map((_, i) => {
                                   const dayNum = i + 1;
                                   return (
                                     <button
@@ -1060,9 +1047,9 @@ export default function BidanBumilCheckupPage() {
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Keteraturan Haid</label>
                       <div className="relative">
-                        <select 
-                          name="keteraturan_haid" 
-                          value={docForm.keteraturan_haid} 
+                        <select
+                          name="keteraturan_haid"
+                          value={docForm.keteraturan_haid}
                           onChange={handleDocInputChange}
                           className="w-full appearance-none pr-10 px-4 py-2.5 border border-gray-100 bg-white rounded-2xl text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-pink-100 transition-all"
                         >
@@ -1081,8 +1068,8 @@ export default function BidanBumilCheckupPage() {
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Usia Kehamilan (HPHT)</label>
                       <div className="relative rounded-2xl bg-white border border-gray-100 flex items-center shadow-sm">
-                        <input 
-                          type="number" name="usia_kehamilan_hpht_weeks" value={docForm.usia_kehamilan_hpht_weeks} onChange={handleDocInputChange} placeholder="Contoh: 10" 
+                        <input
+                          type="number" name="usia_kehamilan_hpht_minggu" value={docForm.usia_kehamilan_hpht_minggu} onChange={handleDocInputChange} placeholder="Contoh: 10"
                           className="w-full px-4 py-2.5 rounded-2xl text-xs font-bold text-gray-700 border-none outline-none bg-transparent"
                         />
                         <span className="absolute right-3 text-[9px] font-black text-pink-500">Minggu</span>
@@ -1094,8 +1081,8 @@ export default function BidanBumilCheckupPage() {
                       <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">HPL Berdasarkan HPHT</label>
                       <div className="relative rounded-2xl bg-white border border-gray-100 flex items-center shadow-sm focus-within:border-pink-300">
                         <button type="button" onClick={() => setIsDocHplHphtOpen(!isDocHplHphtOpen)} className="pl-4 pr-1 text-pink-500 shrink-0"><Calendar className="w-4 h-4" /></button>
-                        <input 
-                          type="text" readOnly value={docForm.hpl_hpht ? new Date(docForm.hpl_hpht).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pilih Tanggal'} 
+                        <input
+                          type="text" readOnly value={docForm.hpl_hpht ? new Date(docForm.hpl_hpht).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pilih Tanggal'}
                           onClick={() => setIsDocHplHphtOpen(true)} className="w-full pl-2 pr-4 py-2.5 rounded-2xl text-xs font-bold text-gray-700 bg-transparent cursor-pointer border-none outline-none"
                         />
                         {isDocHplHphtOpen && (
@@ -1109,12 +1096,12 @@ export default function BidanBumilCheckupPage() {
                               </div>
                               <div className="grid grid-cols-7 gap-1">
                                 {Array.from({ length: getFirstDayOfMonth(calendarDateDocHplHpht.getFullYear(), calendarDateDocHplHpht.getMonth()) }).map((_, i) => <div key={`empty-${i}`} />)}
-                                {Array.from({ length: getDaysInMonth(calendarDateDocHplHpht.getFullYear(), calendarDateDocHplHpht.getMonth()) }).map((_, i) => (
+                                {Array.from({ length: getHariInMonth(calendarDateDocHplHpht.getFullYear(), calendarDateDocHplHpht.getMonth()) }).map((_, i) => (
                                   <button
-                                    key={`day-hplhpht-${i+1}`} type="button" onClick={() => handleSelectDayDocHplHpht(i+1)}
+                                    key={`day-hplhpht-${i + 1}`} type="button" onClick={() => handleSelectDayDocHplHpht(i + 1)}
                                     className="py-1 rounded-xl text-center text-xs font-bold hover:bg-pink-50 text-gray-700"
                                   >
-                                    {i+1}
+                                    {i + 1}
                                   </button>
                                 ))}
                               </div>
@@ -1130,8 +1117,8 @@ export default function BidanBumilCheckupPage() {
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">Usia Kehamilan USG</label>
                       <div className="relative rounded-2xl bg-white border border-gray-100 flex items-center shadow-sm focus-within:border-pink-300">
-                        <input 
-                          type="number" name="usia_kehamilan_usg_weeks" value={docForm.usia_kehamilan_usg_weeks} onChange={handleDocInputChange} placeholder="Contoh: 9" 
+                        <input
+                          type="number" name="usia_kehamilan_usg_minggu" value={docForm.usia_kehamilan_usg_minggu} onChange={handleDocInputChange} placeholder="Contoh: 9"
                           className="w-full px-4 py-2.5 rounded-2xl text-xs font-bold text-gray-700 border-none outline-none bg-transparent"
                         />
                         <span className="absolute right-3 text-[9px] font-black text-pink-500">Minggu</span>
@@ -1143,8 +1130,8 @@ export default function BidanBumilCheckupPage() {
                       <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest pl-1">HPL Berdasarkan USG</label>
                       <div className="relative rounded-2xl bg-white border border-gray-100 flex items-center shadow-sm focus-within:border-pink-300">
                         <button type="button" onClick={() => setIsDocHplUsgOpen(!isDocHplUsgOpen)} className="pl-4 pr-1 text-pink-500 shrink-0"><Calendar className="w-4 h-4" /></button>
-                        <input 
-                          type="text" readOnly value={docForm.hpl_usg ? new Date(docForm.hpl_usg).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pilih Tanggal'} 
+                        <input
+                          type="text" readOnly value={docForm.hpl_usg ? new Date(docForm.hpl_usg).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Pilih Tanggal'}
                           onClick={() => setIsDocHplUsgOpen(true)} className="w-full pl-2 pr-4 py-2.5 rounded-2xl text-xs font-bold text-gray-700 bg-transparent cursor-pointer border-none outline-none"
                         />
                         {isDocHplUsgOpen && (
@@ -1158,12 +1145,12 @@ export default function BidanBumilCheckupPage() {
                               </div>
                               <div className="grid grid-cols-7 gap-1">
                                 {Array.from({ length: getFirstDayOfMonth(calendarDateDocHplUsg.getFullYear(), calendarDateDocHplUsg.getMonth()) }).map((_, i) => <div key={`empty-${i}`} />)}
-                                {Array.from({ length: getDaysInMonth(calendarDateDocHplUsg.getFullYear(), calendarDateDocHplUsg.getMonth()) }).map((_, i) => (
+                                {Array.from({ length: getHariInMonth(calendarDateDocHplUsg.getFullYear(), calendarDateDocHplUsg.getMonth()) }).map((_, i) => (
                                   <button
-                                    key={`day-hplusg-${i+1}`} type="button" onClick={() => handleSelectDayDocHplUsg(i+1)}
+                                    key={`day-hplusg-${i + 1}`} type="button" onClick={() => handleSelectDayDocHplUsg(i + 1)}
                                     className="py-1 rounded-xl text-center text-xs font-bold hover:bg-pink-50 text-gray-700"
                                   >
-                                    {i+1}
+                                    {i + 1}
                                   </button>
                                 ))}
                               </div>
@@ -1177,17 +1164,17 @@ export default function BidanBumilCheckupPage() {
 
                 {/* 3. PENGUKURAN GS & CRL */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-pink-50/5 p-5 rounded-3xl border border-pink-150/15">
-                  
+
                   {/* GS Panel */}
                   <div className="space-y-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
                     <h4 className="text-[10px] font-black text-pink-600 uppercase tracking-widest">🧫 Kantung Kehamilan (GS)</h4>
                     <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-400 block uppercase">Jumlah GS</label>
                       <div className="relative">
-                        <select 
-                          name="jumlah_gs" 
-                          value={docForm.jumlah_gs} 
-                          onChange={handleDocInputChange} 
+                        <select
+                          name="jumlah_gs"
+                          value={docForm.jumlah_gs}
+                          onChange={handleDocInputChange}
                           className="w-full appearance-none pr-8 px-3 py-2 border border-gray-50 bg-gray-50 rounded-xl text-xs font-bold text-gray-700 outline-none focus:ring-1 focus:ring-pink-100 focus:bg-white transition-all"
                         >
                           <option value="Tunggal">Tunggal</option>
@@ -1204,12 +1191,12 @@ export default function BidanBumilCheckupPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-[8px] font-black text-gray-400 block uppercase">Weeks</label>
-                        <input type="number" name="diameter_gs_weeks" value={docForm.diameter_gs_weeks} onChange={handleDocInputChange} placeholder="Weeks" className="w-full px-3 py-2 border border-gray-100 rounded-xl text-xs font-bold" />
+                        <label className="text-[8px] font-black text-gray-400 block uppercase">Minggu</label>
+                        <input type="number" name="diameter_gs_minggu" value={docForm.diameter_gs_minggu} onChange={handleDocInputChange} placeholder="Minggu" className="w-full px-3 py-2 border border-gray-100 rounded-xl text-xs font-bold" />
                       </div>
                       <div>
-                        <label className="text-[8px] font-black text-gray-400 block uppercase">Days</label>
-                        <input type="number" name="diameter_gs_days" value={docForm.diameter_gs_days} onChange={handleDocInputChange} placeholder="Days" className="w-full px-3 py-2 border border-gray-100 rounded-xl text-xs font-bold" />
+                        <label className="text-[8px] font-black text-gray-400 block uppercase">Hari</label>
+                        <input type="number" name="diameter_gs_hari" value={docForm.diameter_gs_hari} onChange={handleDocInputChange} placeholder="Hari" className="w-full px-3 py-2 border border-gray-100 rounded-xl text-xs font-bold" />
                       </div>
                     </div>
                   </div>
@@ -1220,10 +1207,10 @@ export default function BidanBumilCheckupPage() {
                     <div className="space-y-2">
                       <label className="text-[9px] font-black text-gray-400 block uppercase">Jumlah Bayi</label>
                       <div className="relative">
-                        <select 
-                          name="jumlah_bayi" 
-                          value={docForm.jumlah_bayi} 
-                          onChange={handleDocInputChange} 
+                        <select
+                          name="jumlah_bayi"
+                          value={docForm.jumlah_bayi}
+                          onChange={handleDocInputChange}
                           className="w-full appearance-none pr-8 px-3 py-2 border border-gray-50 bg-gray-50 rounded-xl text-xs font-bold text-gray-700 outline-none focus:ring-1 focus:ring-pink-100 focus:bg-white transition-all"
                         >
                           <option value="Tunggal">Tunggal</option>
@@ -1240,12 +1227,12 @@ export default function BidanBumilCheckupPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="text-[8px] font-black text-gray-400 block uppercase">Weeks</label>
-                        <input type="number" name="crl_weeks" value={docForm.crl_weeks} onChange={handleDocInputChange} placeholder="Weeks" className="w-full px-3 py-2 border border-gray-100 rounded-xl text-xs font-bold" />
+                        <label className="text-[8px] font-black text-gray-400 block uppercase">Minggu</label>
+                        <input type="number" name="crl_minggu" value={docForm.crl_minggu} onChange={handleDocInputChange} placeholder="Minggu" className="w-full px-3 py-2 border border-gray-100 rounded-xl text-xs font-bold" />
                       </div>
                       <div>
-                        <label className="text-[8px] font-black text-gray-400 block uppercase">Days</label>
-                        <input type="number" name="crl_days" value={docForm.crl_days} onChange={handleDocInputChange} placeholder="Days" className="w-full px-3 py-2 border border-gray-100 rounded-xl text-xs font-bold" />
+                        <label className="text-[8px] font-black text-gray-400 block uppercase">Hari</label>
+                        <input type="number" name="crl_hari" value={docForm.crl_hari} onChange={handleDocInputChange} placeholder="Hari" className="w-full px-3 py-2 border border-gray-100 rounded-xl text-xs font-bold" />
                       </div>
                     </div>
                   </div>
@@ -1258,10 +1245,10 @@ export default function BidanBumilCheckupPage() {
                     <div className="space-y-2 bg-white p-3 rounded-2xl border border-gray-100">
                       <label className="text-[9px] font-black text-gray-455 uppercase block tracking-wider">Letak Kehamilan</label>
                       <div className="relative">
-                        <select 
-                          name="letak_kehamilan" 
-                          value={docForm.letak_kehamilan} 
-                          onChange={handleDocInputChange} 
+                        <select
+                          name="letak_kehamilan"
+                          value={docForm.letak_kehamilan}
+                          onChange={handleDocInputChange}
                           className="w-full appearance-none pr-8 py-1.5 px-2 bg-gray-50 border border-gray-50 rounded-lg text-xs font-bold text-gray-700 outline-none focus:ring-1 focus:ring-pink-100 focus:bg-white transition-all"
                         >
                           <option value="Intrauterin">Intrauterin</option>
@@ -1277,10 +1264,10 @@ export default function BidanBumilCheckupPage() {
                     <div className="space-y-2 bg-white p-3 rounded-2xl border border-gray-100">
                       <label className="text-[9px] font-black text-gray-455 uppercase block tracking-wider">Denyut / Pulsasi Jantung</label>
                       <div className="relative">
-                        <select 
-                          name="pulsasi_jantung" 
-                          value={docForm.pulsasi_jantung} 
-                          onChange={handleDocInputChange} 
+                        <select
+                          name="pulsasi_jantung"
+                          value={docForm.pulsasi_jantung}
+                          onChange={handleDocInputChange}
                           className="w-full appearance-none pr-8 py-1.5 px-2 bg-gray-50 border border-gray-50 rounded-lg text-xs font-bold text-gray-700 outline-none focus:ring-1 focus:ring-pink-100 focus:bg-white transition-all"
                         >
                           <option value="Tampak">Tampak (Tampak Jelas)</option>
@@ -1354,22 +1341,20 @@ export default function BidanBumilCheckupPage() {
                   <button
                     type="button"
                     onClick={() => setHistoryTab('midwife')}
-                    className={`flex-1 py-3.5 px-6 rounded-[18px] text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm ${
-                      historyTab === 'midwife' 
-                        ? 'bg-white text-pink-600 border border-pink-100/50' 
+                    className={`flex-1 py-3.5 px-6 rounded-[18px] text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm ${historyTab === 'midwife'
+                        ? 'bg-white text-pink-600 border border-pink-100/50'
                         : 'text-gray-400 hover:text-pink-500 hover:bg-white/50 border border-transparent'
-                    }`}
+                      }`}
                   >
                     <Heart className="w-4 h-4" /> Bidan ({checkups.length} Catatan)
                   </button>
                   <button
                     type="button"
                     onClick={() => setHistoryTab('doctor')}
-                    className={`flex-1 py-3.5 px-6 rounded-[18px] text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm ${
-                      historyTab === 'doctor' 
-                        ? 'bg-white text-pink-600 border border-pink-100/50' 
+                    className={`flex-1 py-3.5 px-6 rounded-[18px] text-[11px] sm:text-xs font-black uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2 shadow-sm ${historyTab === 'doctor'
+                        ? 'bg-white text-pink-600 border border-pink-100/50'
                         : 'text-gray-400 hover:text-pink-500 hover:bg-white/50 border border-transparent'
-                    }`}
+                      }`}
                   >
                     <Stethoscope className="w-4 h-4" /> USG ({doctorCheckups.length} Catatan)
                   </button>
@@ -1392,10 +1377,10 @@ export default function BidanBumilCheckupPage() {
                         <div className="space-y-4 w-full">
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-50 pb-3">
                             <div className="flex items-center gap-2">
-                              <span className="h-8 w-8 bg-pink-50 text-pink-500 rounded-lg flex items-center justify-center font-black text-xs">{checkup.week}</span>
+                              <span className="h-8 w-8 bg-pink-50 text-pink-500 rounded-lg flex items-center justify-center font-black text-xs">{checkup.minggu}</span>
                               <div>
                                 <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Usia Kehamilan</h4>
-                                <p className="text-sm font-extrabold text-gray-800">{checkup.week} Minggu</p>
+                                <p className="text-sm font-extrabold text-gray-800">{checkup.minggu} Minggu</p>
                               </div>
                             </div>
                             <span className="text-xs font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100/50 flex items-center gap-1">
@@ -1453,16 +1438,16 @@ export default function BidanBumilCheckupPage() {
                   <div className="space-y-4 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
                     {doctorCheckups.slice().reverse().map((dc) => (
                       <div key={dc.id} className="bg-white hover:bg-gray-50/50 p-5 rounded-[28px] border border-gray-100 transition-all flex flex-col justify-between gap-4 shadow-sm">
-                        
+
                         {/* Title Row */}
                         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-50 pb-3">
                           <div className="flex items-center gap-2">
                             <span className="h-8 w-8 bg-pink-50 text-pink-500 rounded-lg flex items-center justify-center font-black text-xs">
-                              {dc.usia_kehamilan_usg_weeks || dc.usia_kehamilan_hpht_weeks || '?'}
+                              {dc.usia_kehamilan_usg_minggu || dc.usia_kehamilan_hpht_minggu || '?'}
                             </span>
                             <div>
                               <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">Gestasi USG</h4>
-                              <p className="text-sm font-extrabold text-gray-800">{dc.usia_kehamilan_usg_weeks ? `${dc.usia_kehamilan_usg_weeks} Minggu` : 'Tidak Diukur'}</p>
+                              <p className="text-sm font-extrabold text-gray-800">{dc.usia_kehamilan_usg_minggu ? `${dc.usia_kehamilan_usg_minggu} Minggu` : 'Tidak Diukur'}</p>
                             </div>
                           </div>
                           <span className="text-xs font-bold text-gray-400 bg-gray-50 px-3 py-1 rounded-full border border-gray-100/50 flex items-center gap-1">
@@ -1484,12 +1469,12 @@ export default function BidanBumilCheckupPage() {
                           <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
                             <span className="text-[9px] font-black text-pink-600 uppercase block">GS (Kantung)</span>
                             <p className="font-extrabold text-gray-850 mt-0.5">Diameter: {dc.diameter_gs || '0.00'} cm</p>
-                            <p className="text-[10px] text-gray-500">Gestasi: {dc.diameter_gs_weeks}m + {dc.diameter_gs_days}h ({dc.jumlah_gs})</p>
+                            <p className="text-[10px] text-gray-500">Gestasi: {dc.diameter_gs_minggu}m + {dc.diameter_gs_hari}h ({dc.jumlah_gs})</p>
                           </div>
                           <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
                             <span className="text-[9px] font-black text-pink-600 uppercase block">CRL (Janin)</span>
                             <p className="font-extrabold text-gray-850 mt-0.5">Panjang: {dc.crl || '0.00'} cm</p>
-                            <p className="text-[10px] text-gray-500">Gestasi: {dc.crl_weeks}m + {dc.crl_days}h ({dc.jumlah_bayi})</p>
+                            <p className="text-[10px] text-gray-500">Gestasi: {dc.crl_minggu}m + {dc.crl_hari}h ({dc.jumlah_bayi})</p>
                           </div>
                         </div>
 
@@ -1523,8 +1508,8 @@ export default function BidanBumilCheckupPage() {
                         </div>
 
                         {/* Delete Action Button */}
-                        <button 
-                          onClick={() => handleDeleteDocCheckup(dc.id)} 
+                        <button
+                          onClick={() => handleDeleteDocCheckup(dc.id)}
                           className="self-end p-2.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                         >
                           <Trash2 className="w-4 h-4" />

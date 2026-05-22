@@ -5,38 +5,40 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PuskesmasList from '@/components/PuskesmasList';
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  AreaChart, 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
   Area
 } from 'recharts';
-import { 
-  Heart, 
-  Activity, 
-  Scale, 
-  Calendar, 
-  AlertCircle, 
-  CheckCircle2, 
+import {
+  Heart,
+  Activity,
+  Scale,
+  Calendar,
+  AlertCircle,
+  CheckCircle2,
   TrendingUp,
   Droplets,
   LogOut,
   Home,
   BarChart3,
   BookOpen,
-  ShieldAlert
+  ShieldAlert,
+  Menu,
+  X
 } from 'lucide-react';
 import { bumilApi } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 const getPregnancyAge = (hpht: string, hpl: string) => {
   if (!hpht && !hpl) return "Belum Ditentukan";
-  
+
   let hphtDate: Date;
   if (hpht) {
     hphtDate = new Date(hpht);
@@ -44,51 +46,93 @@ const getPregnancyAge = (hpht: string, hpl: string) => {
     const hplDate = new Date(hpl);
     hphtDate = new Date(hplDate.getTime() - 280 * 24 * 60 * 60 * 1000);
   }
-  
+
   const today = new Date();
   const diffMs = today.getTime() - hphtDate.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays < 0) return "Belum Mulai";
-  
-  const weeks = Math.floor(diffDays / 7);
+
+  const minggu = Math.floor(diffDays / 7);
   const days = diffDays % 7;
-  
-  if (weeks >= 42) return "Sudah Waktunya Melahirkan";
-  
-  return `${weeks} Minggu ${days} Hari`;
+
+  if (minggu >= 42) return "Sudah Waktunya Melahirkan";
+
+  return `${minggu} Minggu ${days} Hari`;
 };
 
 const getLast7Days = (hpl: string) => {
   const list = [];
   const today = new Date();
-  
+
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(today.getDate() - i);
-    
+
     let pregnancyMonth = 1;
     let pregnancyDay = 1;
-    
+
     if (hpl) {
       const hplDate = new Date(hpl);
       const diffMs = hplDate.getTime() - d.getTime();
       const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
       const daysPregnant = 280 - diffDays;
-      
+
       pregnancyMonth = Math.max(1, Math.min(10, Math.ceil(daysPregnant / 30)));
       pregnancyDay = Math.max(1, Math.min(31, (daysPregnant % 30) || 30));
     }
-    
+
     const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
     const dayName = dayNames[d.getDay()];
-    
+
     const monthsNamesIndo = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
     const dateLabel = `${d.getDate()} ${monthsNamesIndo[d.getMonth()]}`;
-    
+
     list.push({
       dateLabel,
       dayName,
+      pregnancyMonth,
+      pregnancyDay,
+      key: `${pregnancyMonth}-${pregnancyDay}`,
+      actualDate: d
+    });
+  }
+  return list;
+};
+
+const getMobileDays = (hpl: string) => {
+  const list = [];
+  const today = new Date();
+  const offsets = [-1, 0, 1];
+  const relativeLabels = ['Kemarin', 'Hari Ini', 'Besok'];
+
+  for (let i = 0; i < offsets.length; i++) {
+    const d = new Date();
+    d.setDate(today.getDate() + offsets[i]);
+
+    let pregnancyMonth = 1;
+    let pregnancyDay = 1;
+
+    if (hpl) {
+      const hplDate = new Date(hpl);
+      const diffMs = hplDate.getTime() - d.getTime();
+      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      const daysPregnant = 280 - diffDays;
+
+      pregnancyMonth = Math.max(1, Math.min(10, Math.ceil(daysPregnant / 30)));
+      pregnancyDay = Math.max(1, Math.min(31, (daysPregnant % 30) || 30));
+    }
+
+    const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    const dayName = dayNames[d.getDay()];
+
+    const monthsNamesIndo = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const dateLabel = `${d.getDate()} ${monthsNamesIndo[d.getMonth()]}`;
+
+    list.push({
+      dateLabel,
+      dayName,
+      relativeLabel: relativeLabels[i],
       pregnancyMonth,
       pregnancyDay,
       key: `${pregnancyMonth}-${pregnancyDay}`,
@@ -106,6 +150,8 @@ export default function BumilDashboard() {
   const [medicalHistory, setMedicalHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeChartTab, setActiveChartTab] = useState<'evaluasi' | 'berat'>('evaluasi');
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -126,11 +172,18 @@ export default function BumilDashboard() {
     if (!profile) return;
 
     const regDate = new Date(profile.created_at);
-    regDate.setHours(0,0,0,0);
+    regDate.setHours(0, 0, 0, 0);
     const actualDate = new Date(item.actualDate);
-    actualDate.setHours(0,0,0,0);
+    actualDate.setHours(0, 0, 0, 0);
     if (actualDate < regDate) {
       toast.error('Hari ini berada sebelum tanggal pendaftaran pertama kali Anda melapor.');
+      return;
+    }
+
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    if (actualDate > todayDate) {
+      toast.error('Belum waktunya mencatat minum TTD untuk hari esok!');
       return;
     }
 
@@ -156,7 +209,7 @@ export default function BumilDashboard() {
     try {
       const res = await bumilApi.getMe();
       setProfile(res.data);
-      
+
       const [ttdRes, checkupsRes] = await Promise.all([
         bumilApi.getTtd(res.data.id),
         bumilApi.getCheckups(res.data.id)
@@ -176,7 +229,7 @@ export default function BumilDashboard() {
     return (
       <div className="min-h-screen bg-pink-50 flex items-center justify-center">
         <div className="animate-pulse text-pink-500 font-bold text-xl text-center">
-          Menyiapkan Dashboard Personal Anda...<br/>
+          Menyiapkan Dashboard Personal Anda...<br />
           <span className="text-sm font-normal text-gray-400 italic">Menganalisis data klinis</span>
         </div>
       </div>
@@ -201,172 +254,217 @@ export default function BumilDashboard() {
   const totalTtdTaken = ttdLogs.filter((log: any) => log.taken).length;
   const compliancePct = Math.min(100, Math.round((totalTtdTaken / targetTtd) * 100));
   const last7DaysList = getLast7Days(profile.hpl);
+  const mobileDaysList = getMobileDays(profile.hpl);
 
   return (
-    <div className="min-h-screen bg-pink-50 p-4 md:p-8 font-sans pb-24 animate-fade-in-up">
-      <div className="max-w-7xl mx-auto space-y-8">
-        
-        <div className="flex items-center justify-between bg-white px-6 py-4 rounded-3xl shadow-sm border border-pink-100/50">
-          <div className="flex flex-wrap items-center gap-6">
-            <Link href="/dashboard/bumil" className="flex items-center gap-2 text-pink-500 font-bold hover:opacity-80 transition-all text-sm">
-              <Home className="w-4 h-4 text-pink-500" />
-              <span>Dashboard</span>
-            </Link>
-            <Link href="/fitur" className="flex items-center gap-2 text-gray-600 hover:text-pink-500 font-bold transition-all text-sm">
-              <Activity className="w-4 h-4 text-pink-400" />
-              <span>Fitur Aplikasi</span>
-            </Link>
-            <Link href="/edukasi" className="flex items-center gap-2 text-gray-600 hover:text-pink-500 font-bold transition-all text-sm">
-              <BookOpen className="w-4 h-4 text-pink-400" />
-              <span>Edukasi KIA</span>
-            </Link>
-            <Link href="/tanda-bahaya" className="flex items-center gap-2 text-gray-600 hover:text-pink-500 font-bold transition-all text-sm">
-              <ShieldAlert className="w-4 h-4 text-pink-400" />
-              <span>Buku Saku Tanda Bahaya</span>
-            </Link>
+    <div className="min-h-screen bg-pink-50 p-3 md:p-8 font-sans pb-24 animate-fade-in-up">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-8">
+
+        <div className="relative z-50">
+          <div className="flex items-center justify-between bg-white px-4 py-3 md:px-6 md:py-4 rounded-3xl shadow-sm border border-pink-100/50">
+            {/* Mobile View: TINAKU logo + Hamburger */}
+            <div className="flex md:hidden items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <Heart className="w-6 h-6 text-pink-500" />
+                <span className="text-xl font-black text-pink-500 tracking-tight">TINAKU</span>
+              </div>
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="text-gray-500 hover:text-pink-500 transition-colors"
+              >
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex flex-wrap items-center gap-6">
+              <Link href="/dashboard/bumil" className="flex items-center gap-2 text-pink-500 font-bold hover:opacity-80 transition-all text-sm">
+                <Home className="w-4 h-4 text-pink-500" />
+                <span>Dashboard</span>
+              </Link>
+              <Link href="/fitur" className="flex items-center gap-2 text-gray-600 hover:text-pink-500 font-bold transition-all text-sm">
+                <Activity className="w-4 h-4 text-pink-400" />
+                <span>Fitur Aplikasi</span>
+              </Link>
+              <Link href="/edukasi" className="flex items-center gap-2 text-gray-600 hover:text-pink-500 font-bold transition-all text-sm">
+                <BookOpen className="w-4 h-4 text-pink-400" />
+                <span>Edukasi KIA</span>
+              </Link>
+              <Link href="/tanda-bahaya" className="flex items-center gap-2 text-gray-600 hover:text-pink-500 font-bold transition-all text-sm">
+                <ShieldAlert className="w-4 h-4 text-pink-400" />
+                <span>Buku Saku Tanda Bahaya</span>
+              </Link>
+            </div>
+
+            <button
+              onClick={logout}
+              className="hidden md:flex items-center gap-2 text-gray-400 hover:text-red-500 font-bold transition-all text-sm shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Keluar</span>
+            </button>
           </div>
-          <button 
-            onClick={logout}
-            className="flex items-center gap-2 text-gray-400 hover:text-red-500 font-bold transition-all text-sm shrink-0"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Keluar</span>
-          </button>
+
+          {/* Mobile Dropdown Menu */}
+          {isMobileMenuOpen && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-3xl shadow-xl border border-pink-100/50 p-4 flex flex-col gap-2 md:hidden animate-fade-in-up">
+              <Link href="/dashboard/bumil" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 text-pink-500 font-bold p-3 rounded-xl hover:bg-pink-50 transition-colors">
+                <Home className="w-5 h-5 text-pink-500" />
+                <span>Dashboard</span>
+              </Link>
+              <Link href="/fitur" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 text-gray-600 font-bold p-3 rounded-xl hover:bg-pink-50 hover:text-pink-500 transition-colors">
+                <Activity className="w-5 h-5 text-pink-400" />
+                <span>Fitur Aplikasi</span>
+              </Link>
+              <Link href="/edukasi" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 text-gray-600 font-bold p-3 rounded-xl hover:bg-pink-50 hover:text-pink-500 transition-colors">
+                <BookOpen className="w-5 h-5 text-pink-400" />
+                <span>Edukasi KIA</span>
+              </Link>
+              <Link href="/tanda-bahaya" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 text-gray-600 font-bold p-3 rounded-xl hover:bg-pink-50 hover:text-pink-500 transition-colors">
+                <ShieldAlert className="w-5 h-5 text-pink-400" />
+                <span>Buku Saku Tanda Bahaya</span>
+              </Link>
+              <div className="h-px bg-gray-100 w-full my-2"></div>
+              <button
+                onClick={() => { setIsMobileMenuOpen(false); logout(); }}
+                className="flex items-center gap-3 text-red-500 font-bold p-3 rounded-xl hover:bg-red-50 transition-colors text-left"
+              >
+                <LogOut className="w-5 h-5" />
+                <span>Keluar</span>
+              </button>
+            </div>
+          )}
         </div>
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-[40px] shadow-sm border border-pink-100">
-          <div className="flex items-center gap-5">
-            <div className="md:h-20 md:w-20 h-14 w-14 bg-gradient-to-br from-pink-400 to-pink-600 rounded-full flex items-center justify-center shadow-xl shadow-pink-200">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 bg-white p-4 md:p-8 rounded-3xl md:rounded-[40px] shadow-sm border border-pink-100">
+          <div className="flex items-center gap-3 md:gap-5">
+            <div className="md:h-20 md:w-20 h-12 w-12 bg-gradient-to-br from-pink-400 to-pink-600 rounded-full flex items-center justify-center shadow-xl shadow-pink-200 shrink-0">
               <Heart className="md:w-10 md:h-10 w-5 h-5 text-white fill-current animate-pulse" />
             </div>
             <div>
-              <h1 className="text-xl md:text-3xl font-black text-gray-900 tracking-tight">Halo, Ibu {profile.name}!</h1>
-              <p className="text-gray-500 font-semibold text-xs md:text-sm mt-1">
+              <h1 className="text-lg md:text-3xl font-black text-gray-900 tracking-tight leading-tight">Halo, Ibu {profile.name}!</h1>
+              <p className="text-gray-500 font-semibold text-[11px] md:text-sm mt-0.5">
                 Usia Kehamilan: <span className="text-pink-500 font-black">{getPregnancyAge(profile.hpht, profile.hpl)}</span>
               </p>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] md:text-xs font-medium text-gray-400">
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[9px] md:text-xs font-medium text-gray-400">
                 <span>HPHT: <strong className="text-gray-600 font-bold">{profile.hpht ? new Date(profile.hpht).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}</strong></span>
                 <span>HPL: <strong className="text-pink-500 font-bold">{profile.hpl ? new Date(profile.hpl).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}</strong></span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-4 bg-pink-50 p-4 rounded-3xl border border-pink-100">
-            <div className="text-right">
-              <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Status Risiko</p>
-              <p className={`text-lg font-black ${profile.riskStatus === 'KRR' ? 'text-green-500' : 'text-red-500'}`}>
+          <div className="flex items-center justify-between md:justify-end gap-3 md:gap-4 bg-pink-50/50 p-3 md:p-4 rounded-2xl md:rounded-3xl border border-pink-100/50 w-full md:w-auto">
+            <div className="text-left md:text-right">
+              <p className="text-[9px] md:text-[10px] uppercase font-black text-gray-400 tracking-widest">Status Risiko</p>
+              <p className={`text-sm md:text-lg font-black ${profile.riskStatus === 'KRR' ? 'text-green-500' : 'text-red-500'}`}>
                 {profile.riskStatus === 'KRR' ? 'Kehamilan Normal (KRR)' : 'Risiko Tinggi (KRT)'}
               </p>
             </div>
-            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${profile.riskStatus === 'KRR' ? 'bg-green-500 shadow-green-100' : 'bg-red-500 shadow-red-100'} shadow-lg text-white`}>
-              <CheckCircle2 className="w-6 h-6" />
+            <div className={`h-9 w-9 md:h-12 md:w-12 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 ${profile.riskStatus === 'KRR' ? 'bg-green-500 shadow-green-100' : 'bg-red-500 shadow-red-100'} shadow-lg text-white`}>
+              <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />
             </div>
           </div>
         </div>
 
         {/* Interactive Danger Signs Digital Pocket Book Banner */}
-        <div className="bg-gradient-to-r from-red-500 to-rose-600 rounded-[32px] p-6 sm:p-8 text-white shadow-xl shadow-red-200 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-          <div className="space-y-2 max-w-2xl relative z-10">
-            <span className="inline-flex items-center gap-1.5 bg-white/20 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider animate-pulse">
-              <AlertCircle className="w-3.5 h-3.5" /> PENTING UNTUK IBU & JANIN
+        <div className="bg-gradient-to-r from-red-500 to-rose-600 rounded-3xl p-4 sm:p-6 md:p-8 text-white shadow-xl shadow-red-200 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 relative overflow-hidden">
+          <div className="space-y-1.5 md:space-y-2 max-w-2xl relative z-10 w-full">
+            <span className="inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-[8px] md:text-[9px] font-black uppercase tracking-wider animate-pulse">
+              <AlertCircle className="w-3 h-3 md:w-3.5 md:h-3.5" /> PENTING UNTUK IBU & JANIN
             </span>
-            <h2 className="text-lg sm:text-2xl font-black tracking-tight">
+            <h2 className="text-sm md:text-2xl font-black tracking-tight leading-snug">
               Buku Saku Digital Tanda Bahaya Kehamilan (Bisa Bersuara)
             </h2>
-            <p className="text-xs sm:text-sm text-red-50 font-semibold leading-relaxed">
+            <p className="hidden md:block text-xs md:text-sm text-red-50 font-semibold leading-relaxed">
               Khusus untuk Ibu yang malas membaca atau ingin informasi praktis, halaman ini bisa membacakan tanda bahaya kehamilan secara langsung dengan suara bahasa Indonesia, lengkap dengan kuis harian interaktif!
             </p>
           </div>
-          <Link 
+          <Link
             href="/tanda-bahaya"
-            className="w-full md:w-auto bg-white text-red-650 hover:bg-red-50 px-6 py-4 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-lg text-center whitespace-nowrap active:scale-[0.98] transition-transform relative z-10"
+            className="w-full md:w-auto bg-white text-red-600 hover:bg-red-50 py-2.5 md:py-4 px-5 md:px-6 rounded-xl md:rounded-2xl font-black text-xs md:text-sm uppercase tracking-wider shadow-lg text-center whitespace-nowrap active:scale-[0.98] transition-all relative z-10 mt-1 md:mt-0"
           >
             Buka Buku Saku Suara →
           </Link>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-          <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-[32px] shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-3 md:gap-4 text-center md:text-left">
-            <div className="h-10 w-10 md:h-14 md:w-14 bg-blue-50 text-blue-500 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
-               <Droplets className="w-5 h-5 md:w-7 md:h-7" />
+          <div className="bg-white p-3 md:p-6 rounded-[20px] md:rounded-[32px] shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-4 text-center md:text-left">
+            <div className="h-8 w-8 md:h-14 md:w-14 bg-blue-50 text-blue-500 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
+              <Droplets className="w-4 h-4 md:w-7 md:h-7" />
             </div>
             <div className="min-w-0">
-               <p className="text-[8px] md:text-xs font-bold text-gray-400 uppercase tracking-widest truncate">HB</p>
-               <h4 className="text-sm md:text-xl font-black text-gray-900 truncate">
-                 {latestCheckup ? `${latestCheckup.hb} g/dL` : 'Belum Ada'}
-               </h4>
-               {latestCheckup ? (
-                 <span className={`text-[8px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                   latestCheckup.hb_status === 'Normal' ? 'text-green-500 bg-green-50' : 'text-red-500 bg-red-50'
-                 }`}>
-                   {latestCheckup.hb_status}
-                 </span>
-               ) : (
-                 <span className="text-[8px] md:text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">Belum Periksa</span>
-               )}
-            </div>
-          </div>
-          
-          <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-[32px] shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-3 md:gap-4 text-center md:text-left">
-            <div className="h-10 w-10 md:h-14 md:w-14 bg-rose-50 text-rose-500 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
-               <Activity className="text-rose-500 w-5 h-5 md:w-7 md:h-7" />
-            </div>
-            <div className="min-w-0">
-               <p className="text-[8px] md:text-xs font-bold text-gray-400 uppercase tracking-widest truncate">Tekanan Darah</p>
-               <h4 className="text-sm md:text-xl font-black text-gray-900 truncate">
-                 {latestCheckup ? latestCheckup.tekanan_darah : 'Belum Ada'}
-               </h4>
-               {latestCheckup ? (
-                 <span className={`text-[8px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                   latestCheckup.tekanan_darah_status === 'Normal' ? 'text-green-500 bg-green-50' : 
-                   latestCheckup.tekanan_darah_status === 'Pantau' ? 'text-yellow-600 bg-yellow-50' : 'text-red-500 bg-red-50'
-                 }`}>
-                   {latestCheckup.tekanan_darah_status}
-                 </span>
-               ) : (
-                 <span className="text-[8px] md:text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">Belum Periksa</span>
-               )}
+              <p className="text-[8px] md:text-xs font-bold text-gray-400 uppercase tracking-widest truncate">HB</p>
+              <h4 className="text-xs md:text-xl font-black text-gray-900 truncate">
+                {latestCheckup ? `${latestCheckup.hb} g/dL` : 'Belum Ada'}
+              </h4>
+              {latestCheckup ? (
+                <span className={`text-[8px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${latestCheckup.hb_status === 'Normal' ? 'text-green-500 bg-green-50' : 'text-red-500 bg-red-50'
+                  }`}>
+                  {latestCheckup.hb_status}
+                </span>
+              ) : (
+                <span className="text-[8px] md:text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">Belum Periksa</span>
+              )}
             </div>
           </div>
 
-          <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-[32px] shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-3 md:gap-4 text-center md:text-left">
-            <div className="h-10 w-10 md:h-14 md:w-14 bg-amber-50 text-amber-500 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
-               <TrendingUp className="w-5 h-5 md:w-7 md:h-7" />
+          <div className="bg-white p-3 md:p-6 rounded-[20px] md:rounded-[32px] shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-4 text-center md:text-left">
+            <div className="h-8 w-8 md:h-14 md:w-14 bg-rose-50 text-rose-500 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
+              <Activity className="text-rose-500 w-4 h-4 md:w-7 md:h-7" />
             </div>
             <div className="min-w-0">
-               <p className="text-[8px] md:text-xs font-bold text-gray-400 uppercase tracking-widest truncate">Fundus (TFU)</p>
-               <h4 className="text-sm md:text-xl font-black text-gray-900 truncate">
-                 {latestCheckup ? `${latestCheckup.tfu} cm` : 'Belum Ada'}
-               </h4>
-               {latestCheckup ? (
-                 <span className={`text-[8px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                   latestCheckup.tfu_status === 'Sesuai' ? 'text-blue-500 bg-blue-50' : 'text-yellow-600 bg-yellow-50'
-                 }`}>
-                   {latestCheckup.tfu_status}
-                 </span>
-               ) : (
-                 <span className="text-[8px] md:text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">Belum Periksa</span>
-               )}
+              <p className="text-[8px] md:text-xs font-bold text-gray-400 uppercase tracking-widest truncate">Tekanan Darah</p>
+              <h4 className="text-xs md:text-xl font-black text-gray-900 truncate">
+                {latestCheckup ? latestCheckup.tekanan_darah : 'Belum Ada'}
+              </h4>
+              {latestCheckup ? (
+                <span className={`text-[8px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${latestCheckup.tekanan_darah_status === 'Normal' ? 'text-green-500 bg-green-50' :
+                  latestCheckup.tekanan_darah_status === 'Pantau' ? 'text-yellow-600 bg-yellow-50' : 'text-red-500 bg-red-50'
+                  }`}>
+                  {latestCheckup.tekanan_darah_status}
+                </span>
+              ) : (
+                <span className="text-[8px] md:text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">Belum Periksa</span>
+              )}
             </div>
           </div>
 
-          <div className="bg-white p-4 md:p-6 rounded-2xl md:rounded-[32px] shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-3 md:gap-4 text-center md:text-left">
-            <div className="h-10 w-10 md:h-14 md:w-14 bg-emerald-50 text-emerald-500 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
-               <Heart className="w-5 h-5 md:w-7 md:h-7" />
+          <div className="bg-white p-3 md:p-6 rounded-[20px] md:rounded-[32px] shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-4 text-center md:text-left">
+            <div className="h-8 w-8 md:h-14 md:w-14 bg-amber-50 text-amber-500 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
+              <TrendingUp className="w-4 h-4 md:w-7 md:h-7" />
             </div>
             <div className="min-w-0">
-               <p className="text-[8px] md:text-xs font-bold text-gray-400 uppercase tracking-widest truncate">DJJ</p>
-               <h4 className="text-sm md:text-xl font-black text-gray-900 truncate">
-                 {latestCheckup ? `${latestCheckup.djj} bpm` : 'Belum Ada'}
-               </h4>
-               {latestCheckup ? (
-                 <span className={`text-[8px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                   latestCheckup.djj_status === 'Baik' ? 'text-green-500 bg-green-50' : 'text-red-500 bg-red-50'
-                 }`}>
-                   {latestCheckup.djj_status}
-                 </span>
-               ) : (
-                 <span className="text-[8px] md:text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">Belum Periksa</span>
-               )}
+              <p className="text-[8px] md:text-xs font-bold text-gray-400 uppercase tracking-widest truncate">Fundus (TFU)</p>
+              <h4 className="text-xs md:text-xl font-black text-gray-900 truncate">
+                {latestCheckup ? `${latestCheckup.tfu} cm` : 'Belum Ada'}
+              </h4>
+              {latestCheckup ? (
+                <span className={`text-[8px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${latestCheckup.tfu_status === 'Sesuai' ? 'text-blue-500 bg-blue-50' : 'text-yellow-600 bg-yellow-50'
+                  }`}>
+                  {latestCheckup.tfu_status}
+                </span>
+              ) : (
+                <span className="text-[8px] md:text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">Belum Periksa</span>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white p-3 md:p-6 rounded-[20px] md:rounded-[32px] shadow-sm border border-gray-100 flex flex-col md:flex-row items-center md:items-start gap-2 md:gap-4 text-center md:text-left">
+            <div className="h-8 w-8 md:h-14 md:w-14 bg-emerald-50 text-emerald-500 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
+              <Heart className="w-4 h-4 md:w-7 md:h-7" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[8px] md:text-xs font-bold text-gray-400 uppercase tracking-widest truncate">DJJ</p>
+              <h4 className="text-xs md:text-xl font-black text-gray-900 truncate">
+                {latestCheckup ? `${latestCheckup.djj} bpm` : 'Belum Ada'}
+              </h4>
+              {latestCheckup ? (
+                <span className={`text-[8px] md:text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${latestCheckup.djj_status === 'Baik' ? 'text-green-500 bg-green-50' : 'text-red-500 bg-red-50'
+                  }`}>
+                  {latestCheckup.djj_status}
+                </span>
+              ) : (
+                <span className="text-[8px] md:text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">Belum Periksa</span>
+              )}
             </div>
           </div>
         </div>
@@ -383,72 +481,221 @@ export default function BumilDashboard() {
               </p>
             </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            
-            <div className="bg-white p-8 rounded-[40px] shadow-sm border border-pink-50">
-              <div className="flex items-center justify-between mb-8">
-                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-pink-50 text-pink-500 rounded-xl flex items-center justify-center">
-                       <BarChart3 className="w-5 h-5" />
-                    </div>
-                    <h3 className="text-xl font-black text-gray-900">Evaluasi Medis Kehamilan</h3>
-                 </div>
-                 <div className="flex gap-2 text-[10px] font-black uppercase">
-                    <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-pink-500"></span> DJJ</div>
-                    <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-500"></span> TFU</div>
-                 </div>
+        ) : medicalHistory.length === 1 ? (
+          <div className="bg-white p-6 md:p-10 rounded-[32px] md:rounded-[40px] shadow-sm border border-pink-100 flex flex-col md:flex-row items-center gap-6 md:gap-10 animate-in fade-in duration-300">
+            <div className="md:w-1/3 flex flex-col items-center md:items-start text-center md:text-left space-y-4 shrink-0">
+              <div className="h-16 w-16 bg-gradient-to-tr from-pink-400 to-pink-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-pink-150 shrink-0">
+                <Heart className="w-8 h-8 fill-current animate-pulse" />
               </div>
-              <div className="h-[200px] md:h-[300px] w-full min-w-0 relative">
-                {isMounted && (
-                  <ResponsiveContainer width="100%" height="100%" aspect={window.innerWidth < 768 ? 1.5 : 2}>
-                    <AreaChart data={medicalHistory}>
-                      <defs>
-                        <linearGradient id="colorDjj" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#ec4899" stopOpacity={0.1}/>
-                          <stop offset="95%" stopColor="#ec4899" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                      <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: '#9ca3af'}} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: '#9ca3af'}} />
-                      <Tooltip contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)'}} />
-                      <Area type="monotone" dataKey="djj" stroke="#ec4899" strokeWidth={3} fillOpacity={1} fill="url(#colorDjj)" />
-                      <Area type="monotone" dataKey="tfu" stroke="#3b82f6" strokeWidth={3} fillOpacity={0} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                )}
+              <div className="space-y-1.5">
+                <h4 className="text-lg md:text-xl font-black text-gray-900 leading-tight">Pemeriksaan Pertama Anda! 🎉</h4>
+                <p className="text-xs text-gray-400 leading-relaxed font-medium">
+                  Bidan telah menginputkan hasil pemeriksaan klinis pertama Anda pada <strong className="text-pink-500 font-bold">{medicalHistory[0].week || 'Kunjungan Awal'}</strong>.
+                </p>
+              </div>
+              <div className="inline-flex items-center gap-2 bg-pink-50 px-3.5 py-2 rounded-2xl border border-pink-100 text-pink-600 font-black text-[10px] uppercase tracking-wide">
+                <span>📈 Grafik Tren Aktif Di Periksa Ke-2</span>
+              </div>
+            </div>
+            
+            <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-pink-50/20 p-4 rounded-2xl border border-pink-100/30 flex items-center gap-3">
+                <div className="h-10 w-10 bg-pink-100 text-pink-600 rounded-xl flex items-center justify-center shrink-0">
+                  <Activity className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Jantung Janin (DJJ)</p>
+                  <p className="text-sm font-black text-gray-800">{medicalHistory[0].djj} bpm</p>
+                  <span className={`text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full ${medicalHistory[0].djj_status === 'Baik' ? 'text-green-500 bg-green-50' : 'text-red-500 bg-red-50'}`}>{medicalHistory[0].djj_status}</span>
+                </div>
+              </div>
+
+              <div className="bg-blue-50/20 p-4 rounded-2xl border border-blue-100/30 flex items-center gap-3">
+                <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tinggi Fundus (TFU)</p>
+                  <p className="text-sm font-black text-gray-800">{medicalHistory[0].tfu} cm</p>
+                  <span className={`text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full ${medicalHistory[0].tfu_status === 'Sesuai' ? 'text-blue-500 bg-blue-50' : 'text-yellow-600 bg-yellow-50'}`}>{medicalHistory[0].tfu_status}</span>
+                </div>
+              </div>
+
+              <div className="bg-indigo-50/20 p-4 rounded-2xl border border-indigo-100/30 flex items-center gap-3">
+                <div className="h-10 w-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+                  <Scale className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Berat Badan Ibu</p>
+                  <p className="text-sm font-black text-gray-800">{medicalHistory[0].weight} kg</p>
+                  <span className="text-[9px] font-black text-gray-400 uppercase bg-gray-50 px-2 py-0.5 rounded-full">Pemeriksaan Awal</span>
+                </div>
+              </div>
+
+              <div className="bg-amber-50/20 p-4 rounded-2xl border border-amber-100/30 flex items-center gap-3">
+                <div className="h-10 w-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
+                  <Droplets className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Kadar HB Ibu</p>
+                  <p className="text-sm font-black text-gray-800">{medicalHistory[0].hb} g/dL</p>
+                  <span className={`text-[9px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full ${medicalHistory[0].hb_status === 'Normal' ? 'text-green-500 bg-green-50' : 'text-red-500 bg-red-50'}`}>{medicalHistory[0].hb_status}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Opsi / Tab Selector Grafik (Hanya tampil di HP / di bawah md) */}
+            <div className="flex md:hidden justify-center">
+              <div className="bg-white/80 backdrop-blur p-1 rounded-2xl border border-pink-100 shadow-sm flex gap-1 w-full max-w-md">
+                <button
+                  type="button"
+                  onClick={() => setActiveChartTab('evaluasi')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs md:text-sm font-extrabold transition-all duration-300 ${
+                    activeChartTab === 'evaluasi'
+                      ? 'bg-gradient-to-br from-pink-400 to-pink-500 text-white shadow-md shadow-pink-200'
+                      : 'text-gray-500 hover:text-pink-500 hover:bg-pink-50 bg-transparent'
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  Evaluasi Medis
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveChartTab('berat')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs md:text-sm font-extrabold transition-all duration-300 ${
+                    activeChartTab === 'berat'
+                      ? 'bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-md shadow-indigo-200'
+                      : 'text-gray-500 hover:text-indigo-500 hover:bg-indigo-50 bg-transparent'
+                  }`}
+                >
+                  <Scale className="w-4 h-4" />
+                  Berat Badan
+                </button>
               </div>
             </div>
 
-            <div className="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] shadow-sm border border-pink-50 min-w-0 relative">
-              <div className="flex items-center justify-between mb-8">
-                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center">
-                       <Scale className="w-5 h-5" />
+            {/* Area Grafik Aktif */}
+            <div className="relative">
+              {activeChartTab === 'evaluasi' && (
+                <div className="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] shadow-sm border border-pink-50 animate-in fade-in duration-300">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-pink-50 text-pink-500 rounded-xl flex items-center justify-center shrink-0">
+                        <BarChart3 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-base md:text-xl font-black text-gray-900 leading-tight">Evaluasi Medis Kehamilan</h3>
+                        <p className="text-[10px] text-gray-400 font-semibold mt-0.5 md:hidden">DJJ & Tinggi Fundus (TFU)</p>
+                      </div>
                     </div>
-                    <h3 className="text-lg md:text-xl font-black text-gray-900">Berat Badan</h3>
-                 </div>
-              </div>
-              <div className="h-[200px] md:h-[300px] w-full min-w-0 relative">
-                {isMounted && (
-                  <ResponsiveContainer width="100%" height="100%" aspect={window.innerWidth < 768 ? 1.5 : 2}>
-                    <LineChart data={medicalHistory}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                      <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: '#9ca3af'}} />
-                      <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: '#9ca3af'}} />
-                      <Tooltip contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)'}} />
-                      <Line type="monotone" dataKey="weight" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: '#fff' }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
+                    
+                    <div className="flex items-center gap-4 justify-between md:justify-end w-full md:w-auto">
+                      {/* Legend */}
+                      <div className="flex gap-2.5 text-[9px] md:text-[10px] font-black uppercase">
+                        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-pink-500 shadow-sm shadow-pink-200"></span> DJJ</div>
+                        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-sm shadow-blue-200"></span> TFU</div>
+                      </div>
+
+                      {/* Desktop Tab Selector inside card header */}
+                      <div className="hidden md:flex bg-pink-50/60 p-0.5 rounded-xl border border-pink-100/50 gap-0.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setActiveChartTab('evaluasi')}
+                          className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-black transition-all bg-pink-500 text-white shadow-sm"
+                        >
+                          <BarChart3 className="w-3.5 h-3.5" />
+                          Evaluasi Medis
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveChartTab('berat')}
+                          className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-black transition-all text-gray-500 hover:text-indigo-500 hover:bg-white bg-transparent"
+                        >
+                          <Scale className="w-3.5 h-3.5" />
+                          Berat Badan
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="h-[240px] md:h-[320px] w-full min-w-0 relative">
+                    {isMounted && (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={medicalHistory}>
+                          <defs>
+                            <linearGradient id="colorDjj" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#ec4899" stopOpacity={0.15} />
+                              <stop offset="95%" stopColor="#ec4899" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                          <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#9ca3af' }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#9ca3af' }} />
+                          <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }} />
+                          <Area type="monotone" dataKey="djj" stroke="#ec4899" strokeWidth={3.5} fillOpacity={1} fill="url(#colorDjj)" />
+                          <Area type="monotone" dataKey="tfu" stroke="#3b82f6" strokeWidth={3.5} fillOpacity={0} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeChartTab === 'berat' && (
+                <div className="bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] shadow-sm border border-pink-50 min-w-0 relative animate-in fade-in duration-300">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center shrink-0">
+                        <Scale className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-base md:text-xl font-black text-gray-900 leading-tight">Grafik Berat Badan Ibu</h3>
+                        <p className="text-[10px] text-gray-400 font-semibold mt-0.5 md:hidden">Pemantauan berat badan (kg)</p>
+                      </div>
+                    </div>
+
+                    {/* Desktop Tab Selector inside card header */}
+                    <div className="hidden md:flex bg-indigo-50/60 p-0.5 rounded-xl border border-indigo-100/50 gap-0.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setActiveChartTab('evaluasi')}
+                        className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-black transition-all text-gray-500 hover:text-pink-500 hover:bg-white bg-transparent"
+                      >
+                        <BarChart3 className="w-3.5 h-3.5" />
+                        Evaluasi Medis
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveChartTab('berat')}
+                        className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg text-xs font-black transition-all bg-indigo-500 text-white shadow-sm"
+                      >
+                        <Scale className="w-3.5 h-3.5" />
+                        Berat Badan
+                      </button>
+                    </div>
+                  </div>
+                  <div className="h-[240px] md:h-[320px] w-full min-w-0 relative">
+                    {isMounted && (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={medicalHistory}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                          <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#9ca3af' }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#9ca3af' }} />
+                          <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }} />
+                          <Line type="monotone" dataKey="weight" stroke="#6366f1" strokeWidth={3.5} dot={{ r: 5, fill: '#6366f1', strokeWidth: 2.5, stroke: '#fff' }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
-          <div className="lg:col-span-2 bg-white p-6 md:p-8 rounded-[32px] md:rounded-[40px] shadow-sm border border-pink-50 flex flex-col justify-between">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+          <div className="lg:col-span-2 bg-white p-4 md:p-8 rounded-3xl md:rounded-[40px] shadow-sm border border-pink-50 flex flex-col justify-between">
             {profile.status === 'melahirkan' ? (
               <div className="h-full flex flex-col justify-center items-center text-center p-6 space-y-4 my-auto">
                 <span className="text-5xl animate-bounce">👶🎉</span>
@@ -463,13 +710,13 @@ export default function BumilDashboard() {
             ) : (
               <>
                 <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-lg md:text-xl font-black text-gray-900 flex items-center gap-3">
+                  <div className="flex items-center place-items-center justify-between mb-6">
+                    <h3 className="text-md md:text-xl font-black text-gray-900 flex items-center gap-3">
                       <Calendar className="w-5 h-5 text-pink-500" />
                       Tablet Tambah Darah
                     </h3>
                     <Link href="/dashboard/bumil/ttd" className="text-xs font-bold text-pink-500 hover:text-pink-600 transition-colors flex items-center gap-1.5 bg-pink-50 px-3 py-1.5 rounded-full border border-pink-100">
-                      History Minum TTD →
+                      Detail →
                     </Link>
                   </div>
 
@@ -485,37 +732,104 @@ export default function BumilDashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-7 gap-1 md:gap-3 mt-2">
+                {/* Mobile View: 3 Days (Yesterday, Today, Tomorrow) - Larger Buttons */}
+                <div className="grid md:hidden grid-cols-3 gap-4 mt-2">
+                  {mobileDaysList.map((item, idx) => {
+                    const isTaken = ttdLogs.some((log: any) => log.bulan_ke === item.pregnancyMonth && log.day === item.pregnancyDay && log.taken);
+
+                    const regDate = new Date(profile.created_at);
+                    regDate.setHours(0, 0, 0, 0);
+                    const actualDate = new Date(item.actualDate);
+                    actualDate.setHours(0, 0, 0, 0);
+                    
+                    const todayDate = new Date();
+                    todayDate.setHours(0, 0, 0, 0);
+
+                    const isBeforeReg = actualDate < regDate;
+                    const isFuture = actualDate > todayDate;
+                    const isToday = item.relativeLabel === 'Hari Ini';
+
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleToggleDashboardDay(item)}
+                        disabled={isBeforeReg}
+                        className={`flex flex-col items-center gap-2 focus:outline-none group active:scale-95 transition-all ${
+                          isBeforeReg ? 'cursor-not-allowed opacity-50' : ''
+                        } ${isToday ? 'scale-105 z-10' : 'scale-90 opacity-80'}`}
+                      >
+                        <div className={`w-full aspect-square rounded-2xl flex flex-col items-center justify-center border-2 transition-all ${
+                          isBeforeReg
+                            ? 'bg-gray-100 border-dashed border-gray-200 text-gray-400 shadow-inner'
+                            : isFuture
+                              ? 'bg-gray-50 border-dashed border-gray-200 text-gray-400 shadow-inner shadow-gray-200'
+                              : isTaken
+                                ? isToday
+                                  ? 'bg-pink-500 border-pink-500 text-white shadow-xl shadow-pink-300/70'
+                                  : 'bg-pink-600 border-pink-600 text-white shadow-md shadow-pink-950/40'
+                                : isToday
+                                  ? 'bg-white border-pink-300 text-transparent shadow-lg shadow-pink-100'
+                                  : 'bg-gray-50/80 border-gray-200 text-transparent shadow-sm shadow-gray-300/30 hover:border-pink-300'
+                        }`}>
+                          {isBeforeReg ? (
+                            <span className="text-base">🔒</span>
+                          ) : isFuture ? (
+                            <span className="text-base">⏳</span>
+                          ) : isTaken ? (
+                            <span className={isToday ? "text-xl font-black text-white animate-pulse" : "text-lg font-bold text-white"}>✓</span>
+                          ) : (
+                            <span className={`font-black text-pink-300 group-hover:text-pink-500 ${isToday ? 'text-[10px]' : 'text-[9px]'}`}>TAP</span>
+                          )}
+                        </div>
+                        <div className="text-center">
+                          <span className={`font-black uppercase block ${
+                            isToday 
+                              ? 'text-[11px] text-pink-500 tracking-wide font-black' 
+                              : 'text-[9px] text-gray-400 font-bold'
+                          }`}>
+                            {item.relativeLabel}
+                          </span>
+                          <span className={`text-gray-500 block truncate ${isToday ? 'text-[9px] font-extrabold' : 'text-[8px] font-medium'}`}>
+                            {item.dayName}, {item.dateLabel}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop View: 7 Days */}
+                <div className="hidden md:grid grid-cols-7 gap-3 mt-2">
                   {last7DaysList.map((item, idx) => {
                     const isTaken = ttdLogs.some((log: any) => log.bulan_ke === item.pregnancyMonth && log.day === item.pregnancyDay && log.taken);
-                    
+
                     const regDate = new Date(profile.created_at);
-                    regDate.setHours(0,0,0,0);
+                    regDate.setHours(0, 0, 0, 0);
                     const actualDate = new Date(item.actualDate);
-                    actualDate.setHours(0,0,0,0);
+                    actualDate.setHours(0, 0, 0, 0);
                     const isBeforeReg = actualDate < regDate;
 
                     return (
-                      <button 
-                        key={idx} 
+                      <button
+                        key={idx}
                         type="button"
                         onClick={() => handleToggleDashboardDay(item)}
                         disabled={isBeforeReg}
                         className={`flex flex-col items-center gap-1.5 md:gap-2 focus:outline-none group active:scale-95 transition-all ${isBeforeReg ? 'cursor-not-allowed opacity-50' : ''}`}
                       >
-                         <div className={`w-full aspect-square rounded-xl md:rounded-2xl flex items-center justify-center border-2 transition-all ${
-                           isBeforeReg
-                             ? 'bg-gray-100 border-dashed border-gray-200 text-gray-400'
-                             : isTaken 
-                               ? 'bg-pink-500 border-pink-500 text-white shadow-lg shadow-pink-100' 
-                               : 'bg-white border-gray-100 text-transparent hover:border-pink-300'
-                         }`}>
-                            <span className="text-[10px] font-black text-white">{isBeforeReg ? '🔒' : '✓'}</span>
-                         </div>
-                         <div className="text-center">
-                           <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase block">{item.dayName}</span>
-                           <span className="text-[7px] md:text-[8px] font-bold text-gray-500 block truncate">{item.dateLabel}</span>
-                         </div>
+                        <div className={`w-full aspect-square rounded-xl md:rounded-2xl flex items-center justify-center border-2 transition-all ${isBeforeReg
+                          ? 'bg-gray-100 border-dashed border-gray-200 text-gray-400'
+                          : isTaken
+                            ? 'bg-pink-500 border-pink-500 text-white shadow-lg shadow-pink-100'
+                            : 'bg-white border-gray-100 text-transparent hover:border-pink-300'
+                          }`}>
+                          <span className="text-[10px] font-black text-white">{isBeforeReg ? '🔒' : '✓'}</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase block">{item.dayName}</span>
+                          <span className="text-[7px] md:text-[8px] font-bold text-gray-500 block truncate">{item.dateLabel}</span>
+                        </div>
                       </button>
                     );
                   })}
@@ -524,20 +838,20 @@ export default function BumilDashboard() {
             )}
           </div>
 
-          <div className="bg-gray-900 p-6 md:p-8 rounded-[32px] md:rounded-[40px] shadow-2xl text-white">
-             <h3 className="text-lg md:text-xl font-black mb-6 md:mb-10 flex items-center gap-3">
-                <AlertCircle className="text-pink-500" />
-                Skor KSPR
-             </h3>
-             <div className="flex flex-col items-center justify-center space-y-4 md:space-y-6">
-                <div className="h-24 w-24 md:h-32 md:w-32 rounded-full border-4 md:border-8 border-pink-500 flex items-center justify-center">
-                   <span className="text-2xl md:text-4xl font-black">2</span>
-                </div>
-                <h4 className="text-lg md:text-xl font-black text-green-400 text-center">NORMAL (KRR)</h4>
-                <button onClick={() => router.push('/skrining')} className="w-full bg-white/10 hover:bg-white/20 py-3 md:py-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold transition-all">
-                   Update Data
-                </button>
-             </div>
+          <div className="bg-gray-900 p-4 md:p-8 rounded-3xl md:rounded-[40px] shadow-2xl text-white">
+            <h3 className="text-base md:text-xl font-black mb-4 md:mb-10 flex items-center gap-2 md:gap-3">
+              <AlertCircle className="text-pink-500 w-5 h-5" />
+              Skor KSPR
+            </h3>
+            <div className="flex flex-col items-center justify-center space-y-4 md:space-y-6">
+              <div className="h-20 w-20 md:h-32 md:w-32 rounded-full border-4 md:border-8 border-pink-500 flex items-center justify-center">
+                <span className="text-xl md:text-4xl font-black">2</span>
+              </div>
+              <h4 className="text-sm md:text-xl font-black text-green-400 text-center">NORMAL (KRR)</h4>
+              <button onClick={() => router.push('/skrining')} className="w-full bg-white/10 hover:bg-white/20 py-2.5 md:py-4 rounded-xl md:rounded-2xl text-xs md:text-sm font-bold transition-all">
+                Update Data
+              </button>
+            </div>
           </div>
         </div>
 

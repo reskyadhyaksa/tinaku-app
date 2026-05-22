@@ -94,45 +94,94 @@ export default function BidanDashboard() {
           </div>
         </div>
 
-        {/* Widgets Ringkasan */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-pink-100 flex items-center justify-between hover:shadow-md transition-shadow">
+        {/* Desktop View: Separate spacious widgets */}
+        <div className="hidden lg:grid grid-cols-4 gap-6">
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-pink-100 flex items-center justify-between hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
             <div>
-              <p className="text-xs md:text-sm font-medium text-gray-500 mb-1">Total Ibu Hamil</p>
-              <h3 className="text-xl md:text-2xl font-bold text-gray-900">{stats.total}</h3>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total Ibu Hamil</p>
+              <h3 className="text-2xl font-black text-gray-900">{stats.total}</h3>
             </div>
-            <div className="h-10 w-10 rounded-full bg-pink-50 flex items-center justify-center">
-              <Users className="text-pink-400 h-5 w-5" />
+            <div className="h-12 w-12 rounded-2xl bg-pink-50 flex items-center justify-center text-pink-500 shrink-0">
+              <Users className="text-pink-400 w-6 h-6" />
             </div>
           </div>
           
-          <div className="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-pink-100 flex items-center justify-between hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
             <div>
-              <p className="text-xs md:text-sm font-medium text-gray-500 mb-1">Risiko Rendah (KRR)</p>
-              <h3 className="text-xl md:text-2xl font-bold text-green-600">{stats.krr}</h3>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">KRR (Normal)</p>
+              <h3 className="text-2xl font-black text-green-600">{stats.krr}</h3>
             </div>
-            <div className="h-10 w-10 rounded-full bg-green-50 flex items-center justify-center">
-              <Activity className="text-green-600 h-5 w-5" />
+            <div className="h-12 w-12 rounded-2xl bg-green-50 flex items-center justify-center text-green-500 shrink-0">
+              <Activity className="text-green-600 w-6 h-6" />
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-pink-100 flex items-center justify-between hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
             <div>
-              <p className="text-xs md:text-sm font-medium text-gray-500 mb-1">Risiko Tinggi (KRT)</p>
-              <h3 className="text-xl md:text-2xl font-bold text-yellow-600">{stats.krt}</h3>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Risiko Tinggi (KRT)</p>
+              <h3 className="text-2xl font-black text-yellow-600">{stats.krt}</h3>
             </div>
-            <div className="h-10 w-10 rounded-full bg-yellow-50 flex items-center justify-center">
-              <AlertTriangle className="text-yellow-600 h-5 w-5" />
+            <div className="h-12 w-12 rounded-2xl bg-yellow-50 flex items-center justify-center text-yellow-500 shrink-0">
+              <AlertTriangle className="text-yellow-600 w-6 h-6" />
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 md:p-5 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-pink-100 flex items-center justify-between hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
             <div>
-              <p className="text-xs md:text-sm font-medium text-gray-500 mb-1">Risiko Sangat Tinggi</p>
-              <h3 className="text-xl md:text-2xl font-bold text-red-600">{stats.krst}</h3>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Sgt Tinggi (KRST)</p>
+              <h3 className="text-2xl font-black text-red-600">{stats.krst}</h3>
             </div>
-            <div className="h-10 w-10 rounded-full bg-red-50 flex items-center justify-center">
-              <AlertCircle className="text-red-600 h-5 w-5" />
+            <div className="h-12 w-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-500 shrink-0">
+              <AlertCircle className="text-red-600 w-6 h-6" />
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile & Tablet View: Sleek compact horizontal stats card */}
+        <div className="lg:hidden bg-white p-3.5 rounded-3xl shadow-sm border border-pink-100">
+          <div className="grid grid-cols-4 divide-x divide-pink-100/50">
+            {/* Stat 1: Total Ibu Hamil */}
+            <div className="flex flex-col items-center justify-center text-center px-1">
+              <div className="h-8 w-8 bg-pink-50 text-pink-500 rounded-xl flex items-center justify-center shrink-0 mb-1.5">
+                <Users className="w-4 h-4 text-pink-400" />
+              </div>
+              <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider block leading-tight">Total Ibu</span>
+              <h3 className="text-sm font-black text-gray-900 mt-1 leading-none">
+                {stats.total}
+              </h3>
+            </div>
+
+            {/* Stat 2: KRR */}
+            <div className="flex flex-col items-center justify-center text-center px-1">
+              <div className="h-8 w-8 bg-green-50 text-green-500 rounded-xl flex items-center justify-center shrink-0 mb-1.5">
+                <Activity className="w-4 h-4 text-green-600" />
+              </div>
+              <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider block leading-tight">KRR</span>
+              <h3 className="text-sm font-black text-green-600 mt-1 leading-none">
+                {stats.krr}
+              </h3>
+            </div>
+
+            {/* Stat 3: KRT */}
+            <div className="flex flex-col items-center justify-center text-center px-1">
+              <div className="h-8 w-8 bg-yellow-50 text-yellow-600 rounded-xl flex items-center justify-center shrink-0 mb-1.5">
+                <AlertTriangle className="w-4 h-4 text-yellow-600" />
+              </div>
+              <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider block leading-tight">KRT</span>
+              <h3 className="text-sm font-black text-yellow-600 mt-1 leading-none">
+                {stats.krt}
+              </h3>
+            </div>
+
+            {/* Stat 4: KRST */}
+            <div className="flex flex-col items-center justify-center text-center px-1">
+              <div className="h-8 w-8 bg-red-50 text-red-500 rounded-xl flex items-center justify-center shrink-0 mb-1.5">
+                <AlertCircle className="w-4 h-4 text-red-600" />
+              </div>
+              <span className="text-[9px] font-black text-gray-400 uppercase tracking-wider block leading-tight">KRST</span>
+              <h3 className="text-sm font-black text-red-600 mt-1 leading-none">
+                {stats.krst}
+              </h3>
             </div>
           </div>
         </div>

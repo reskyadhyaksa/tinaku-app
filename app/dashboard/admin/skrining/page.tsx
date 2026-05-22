@@ -49,6 +49,15 @@ export default function SkriningBidanPage() {
   const [isFetching, setIsFetching] = useState(true);
   const [showDetail, setShowDetail] = useState(false);
 
+  const handleBack = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (typeof window !== 'undefined' && window.history.length > 1 && document.referrer.includes(window.location.host)) {
+      router.back();
+    } else {
+      router.push(user?.role === 'bumil' ? '/dashboard/bumil' : '/dashboard/admin');
+    }
+  };
+
   // Read URL id param on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -177,7 +186,11 @@ export default function SkriningBidanPage() {
         ksprResponses: responses 
       });
       toast.success('Skrining berhasil disimpan!');
-      router.push('/');
+      if (typeof window !== 'undefined' && window.history.length > 1 && document.referrer.includes(window.location.host)) {
+        router.back();
+      } else {
+        router.push(user?.role === 'bumil' ? '/dashboard/bumil' : '/dashboard/admin');
+      }
     } catch (error) {
       toast.error('Gagal menyimpan hasil skrining');
     } finally {
@@ -192,9 +205,13 @@ export default function SkriningBidanPage() {
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 md:p-6 rounded-3xl shadow-sm border border-pink-50">
           <div className="flex items-center gap-4">
-            <Link href="/" className="h-9 w-9 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm shrink-0">
+            <button 
+              type="button"
+              onClick={handleBack} 
+              className="h-9 w-9 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm shrink-0 cursor-pointer"
+            >
               <ArrowLeft className="w-4 h-4 text-gray-600" />
-            </Link>
+            </button>
             <div>
               <h1 className="text-base md:text-lg font-bold text-gray-900">Skrining Faktor Risiko</h1>
               <p className="text-[10px] md:text-xs text-gray-500">Kuesioner KSPR Digital</p>

@@ -11,7 +11,8 @@ import {
   ChevronRight,
   Menu,
   X,
-  BookOpen
+  BookOpen,
+  Download
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useState } from 'react';
@@ -28,6 +29,7 @@ export default function Sidebar() {
     { name: 'Dashboard', href: '/dashboard/admin', icon: LayoutDashboard },
     { name: 'Data Bumil', href: '/dashboard/admin/bumil', icon: Heart },
     { name: 'Screening Bumil', href: '/dashboard/admin/skrining', icon: ClipboardCheck },
+    { name: 'Export Data', href: '/dashboard/admin/export', icon: Download },
   ];
 
   if (user.role === 'bidan' || user.role === 'superadmin') {

@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  ArrowLeft, 
-  Users, 
-  CheckCircle2, 
+import {
+  ArrowLeft,
+  Users,
+  CheckCircle2,
   Calendar,
   Coffee,
   TrendingUp,
@@ -19,7 +19,7 @@ import toast from 'react-hot-toast';
 
 const getPregnancyAge = (hpht: string, hpl: string) => {
   if (!hpht && !hpl) return "Belum Ditentukan";
-  
+
   let hphtDate: Date;
   if (hpht) {
     hphtDate = new Date(hpht);
@@ -27,26 +27,26 @@ const getPregnancyAge = (hpht: string, hpl: string) => {
     const hplDate = new Date(hpl);
     hphtDate = new Date(hplDate.getTime() - 280 * 24 * 60 * 60 * 1000);
   }
-  
+
   const today = new Date();
   const diffMs = today.getTime() - hphtDate.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays < 0) return "Belum Mulai";
-  
-  const weeks = Math.floor(diffDays / 7);
+
+  const minggu = Math.floor(diffDays / 7);
   const days = diffDays % 7;
-  
-  if (weeks >= 42) return "Sudah Waktunya Melahirkan";
-  
-  return `${weeks} Minggu ${days} Hari`;
+
+  if (minggu >= 42) return "Sudah Waktunya Melahirkan";
+
+  return `${minggu} Minggu ${days} Hari`;
 };
 
 export default function AdminTtdMonitoringPage() {
   const { user } = useAuth();
   const router = useRouter();
   const { id } = useParams();
-  
+
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -127,13 +127,13 @@ export default function AdminTtdMonitoringPage() {
 
   const targetTtd = getDynamicTarget(profile?.created_at, profile?.hpl);
   const totalTaken = Object.values(logs).filter(Boolean).length;
-  const compliancePercentage = Math.min(100, Math.round((totalTaken / targetTtd) * 100)) || 0; 
+  const compliancePercentage = Math.min(100, Math.round((totalTaken / targetTtd) * 100)) || 0;
 
   if (loading || !profile) {
     return (
       <div className="min-h-screen bg-pink-50 flex items-center justify-center">
         <div className="animate-pulse text-pink-500 font-bold text-xl text-center">
-          Mengambil data kepatuhan TTD ibu hamil...<br/>
+          Mengambil data kepatuhan TTD ibu hamil...<br />
           <span className="text-sm font-normal text-gray-400 italic">Harap tunggu sebentar</span>
         </div>
       </div>
@@ -150,8 +150,8 @@ export default function AdminTtdMonitoringPage() {
         <div className="bg-white p-6 md:px-8 md:py-6 rounded-3xl shadow-sm border border-pink-100 space-y-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full">
-              <button 
-                onClick={() => router.push('/dashboard/admin/bumil')} 
+              <button
+                onClick={() => router.push('/dashboard/admin/bumil')}
                 className="h-12 w-12 bg-white border border-gray-100 rounded-2xl flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm shrink-0 self-start md:self-auto"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
@@ -163,7 +163,7 @@ export default function AdminTtdMonitoringPage() {
                   </span>
                   <h1 className="text-xl md:text-2xl font-black text-gray-900">Kepatuhan Minum TTD</h1>
                 </div>
-                
+
                 <div className="mt-4 flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-5 bg-pink-50/40 border border-pink-100/50 p-4 rounded-[24px] w-full flex-wrap">
                   <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-600 shrink-0">
@@ -174,9 +174,9 @@ export default function AdminTtdMonitoringPage() {
                       <span className="text-xs md:text-sm font-extrabold text-gray-800 mt-1">{profile?.name}</span>
                     </div>
                   </div>
-                  
+
                   <div className="hidden lg:block h-8 w-[1px] bg-pink-100/80" />
-                  
+
                   <div className="flex items-center gap-3 border-t border-pink-100/30 lg:border-t-0 pt-3 lg:pt-0">
                     <div className="h-9 w-9 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-600 shrink-0">
                       <Activity className="w-4.5 h-4.5" />
@@ -269,11 +269,11 @@ export default function AdminTtdMonitoringPage() {
             <div className="space-y-2">
               <label className="text-xs font-bold text-gray-500 ml-1">Nama Pendamping</label>
               <div className="relative">
-                <input 
-                  type="text" 
-                  value={pendampingName} 
-                  readOnly 
-                  className="w-full px-4 py-3.5 pl-10 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 outline-none font-medium text-sm" 
+                <input
+                  type="text"
+                  value={pendampingName}
+                  readOnly
+                  className="w-full px-4 py-3.5 pl-10 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 outline-none font-medium text-sm"
                 />
                 <User className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               </div>
@@ -281,8 +281,8 @@ export default function AdminTtdMonitoringPage() {
 
             <div className="space-y-2">
               <label className="text-xs font-bold text-gray-500 ml-1">Hubungan dengan Bumil</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={pendampingRelation}
                 readOnly
                 className="w-full px-4 py-3.5 rounded-2xl text-gray-700 border border-gray-100 bg-gray-50/50 outline-none font-medium text-sm"
@@ -307,7 +307,7 @@ export default function AdminTtdMonitoringPage() {
               >
                 ←
               </button>
-              
+
               <div className="bg-pink-50 border border-pink-100 text-pink-600 font-black px-5 py-2 rounded-xl text-sm min-w-36 text-center">
                 Bulan ke-{activeMonth}
               </div>
@@ -324,7 +324,7 @@ export default function AdminTtdMonitoringPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            
+
             <div className="space-y-6">
               <div className="p-6 bg-pink-50/30 rounded-3xl border border-pink-100/50 space-y-4">
                 <span className="text-[10px] font-black text-pink-500 uppercase tracking-widest block">Bulan / Tahun</span>
@@ -342,7 +342,7 @@ export default function AdminTtdMonitoringPage() {
                   <span className="text-xs text-gray-400 font-bold">dari 31 Hari</span>
                 </div>
                 <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="bg-pink-500 h-full transition-all duration-500"
                     style={{ width: `${(days.filter(d => logs[`${activeMonth}-${d}`]).length / 31) * 100}%` }}
                   ></div>
@@ -363,11 +363,10 @@ export default function AdminTtdMonitoringPage() {
                   return (
                     <div
                       key={d}
-                      className={`aspect-square rounded-2xl border-2 flex flex-col items-center justify-center relative ${
-                        isTaken
+                      className={`aspect-square rounded-2xl border-2 flex flex-col items-center justify-center relative ${isTaken
                           ? 'bg-pink-500 border-pink-500 text-white shadow-lg shadow-pink-100'
                           : 'bg-white border-gray-100 text-gray-400'
-                      }`}
+                        }`}
                     >
                       <span className="text-xs font-black">{d}</span>
                       {isTaken && (

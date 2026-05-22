@@ -40,106 +40,7 @@ export default function DataBumilPage() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [openPeriksaId, setOpenPeriksaId] = useState<string | null>(null);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
 
-  const escapeCSV = (value: any) => {
-    if (value === null || value === undefined) return '""';
-    const str = String(value);
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-      return `"${str.replace(/"/g, '""')}"`;
-    }
-    return str;
-  };
-
-  const handleExport = async (type: 'bidan' | 'usg') => {
-    setShowActionsMenu(false);
-    if (isExporting) return;
-    setIsExporting(true);
-    const toastId = toast.loading(`Mempersiapkan data ${type === 'bidan' ? 'Catatan Bidan' : 'Catatan USG'}...`);
-    
-    try {
-      const res = await bumilApi.getAll({ limit: 1000 });
-      const allBumils = res.data.data || (Array.isArray(res.data) ? res.data : []);
-      
-      let csvContent = "";
-      
-      if (type === 'bidan') {
-        const headers = ["NIK", "Nama Ibu Hamil", "Tanggal Periksa", "Minggu Ke", "Berat Badan (Kg)", "TFU", "Status TFU", "Tekanan Darah", "Status Tekanan Darah", "HB", "Status HB", "DJJ", "Status DJJ"];
-        csvContent += headers.map(escapeCSV).join(",") + "\n";
-        
-        for (const bumil of allBumils) {
-          try {
-            const checkupsRes = await bumilApi.getCheckups(bumil.id);
-            const checkups = checkupsRes.data || [];
-            for (const c of checkups) {
-              const row = [
-                bumil.nik || '-',
-                bumil.name || '-',
-                c.checkup_date ? new Date(c.checkup_date).toLocaleDateString('id-ID') : '-',
-                c.week || '-',
-                c.weight || '-',
-                c.tfu || '-',
-                c.tfu_status || '-',
-                c.tekanan_darah || '-',
-                c.tekanan_darah_status || '-',
-                c.hb || '-',
-                c.hb_status || '-',
-                c.djj || '-',
-                c.djj_status || '-'
-              ];
-              csvContent += row.map(escapeCSV).join(",") + "\n";
-            }
-          } catch(err) {
-            console.error(`Gagal mengambil checkup untuk bumil ${bumil.id}`, err);
-          }
-        }
-      } else {
-        const headers = ["NIK", "Nama Ibu Hamil", "Tanggal Periksa", "Nama Dokter", "Kesimpulan", "Usia Kehamilan (USG)", "HPL (USG)", "Letak Kehamilan", "Jumlah Janin", "Pulsasi Jantung", "Kecurigaan Abnormal"];
-        csvContent += headers.map(escapeCSV).join(",") + "\n";
-        
-        for (const bumil of allBumils) {
-          try {
-            const usgRes = await bumilApi.getDoctorCheckups(bumil.id);
-            const checkups = usgRes.data || [];
-            for (const c of checkups) {
-              const row = [
-                bumil.nik || '-',
-                bumil.name || '-',
-                c.checkup_date ? new Date(c.checkup_date).toLocaleDateString('id-ID') : '-',
-                c.dokter_name || '-',
-                c.konsep || '-',
-                c.usia_kehamilan_usg_weeks ? `${c.usia_kehamilan_usg_weeks} Minggu` : '-',
-                c.hpl_usg ? new Date(c.hpl_usg).toLocaleDateString('id-ID') : '-',
-                c.letak_kehamilan || '-',
-                c.jumlah_bayi || '-',
-                c.pulsasi_jantung || '-',
-                c.kecurigaan_abnormal === 'Ya' ? `Ya: ${c.kecurigaan_abnormal_detail || ''}` : 'Tidak'
-              ];
-              csvContent += row.map(escapeCSV).join(",") + "\n";
-            }
-          } catch(err) {
-            console.error(`Gagal mengambil usg untuk bumil ${bumil.id}`, err);
-          }
-        }
-      }
-      
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.setAttribute("href", url);
-      link.setAttribute("download", `Export_${type === 'bidan' ? 'Catatan_Bidan' : 'Catatan_USG'}_${new Date().getTime()}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast.success('Export berhasil!', { id: toastId });
-    } catch (error) {
-      toast.error('Gagal melakukan export data', { id: toastId });
-      console.error(error);
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -279,30 +180,14 @@ export default function DataBumilPage() {
                         Tambah Ibu Hamil
                       </button>
                       
-                      <div className="px-4 py-2 text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                        Export Data Bumil
-                      </div>
-                      
                       <button 
-                        onClick={() => handleExport('bidan')}
-                        disabled={isExporting}
-                        className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors flex items-center gap-3 disabled:opacity-50"
+                        onClick={() => { setShowActionsMenu(false); router.push('/dashboard/admin/export'); }}
+                        className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors flex items-center gap-3"
                       >
                         <div className="h-8 w-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center shrink-0">
-                          <FileText className="w-4 h-4" />
+                          <Download className="w-4 h-4" />
                         </div>
-                        Catatan Bidan
-                      </button>
-                      
-                      <button 
-                        onClick={() => handleExport('usg')}
-                        disabled={isExporting}
-                        className="w-full text-left px-4 py-2.5 text-sm font-bold text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors flex items-center gap-3 disabled:opacity-50"
-                      >
-                        <div className="h-8 w-8 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center shrink-0">
-                          <Activity className="w-4 h-4" />
-                        </div>
-                        Catatan USG
+                        Export Data Rekam Medis
                       </button>
                     </div>
                   </>
