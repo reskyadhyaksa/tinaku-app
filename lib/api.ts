@@ -27,7 +27,7 @@ api.interceptors.response.use(
 );
 
 export const bumilApi = {
-  getAll: (params?: { page?: number, limit?: number, search?: string }) => api.get('/bumil', { params }),
+  getAll: (params?: { page?: number, limit?: number, search?: string, filter?: string, sort?: string }) => api.get('/bumil', { params }),
   getMe: () => api.get('/bumil/me'),
   getById: (id: string) => api.get(`/bumil/${id}`),
   create: (data: any) => api.post('/bumil', data),

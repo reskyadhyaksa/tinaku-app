@@ -18,7 +18,8 @@ import {
   Key,
   Eye,
   EyeOff,
-  ChevronDown
+  ChevronDown,
+  X
 } from 'lucide-react';
 import { bumilApi, authApi } from '@/lib/api';
 import dynamic from 'next/dynamic';
@@ -61,6 +62,8 @@ export default function EditBumilPage() {
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [username, setUsername] = useState('');
 
   // Custom Calendar Popover States for HPHT and HPL
   const [isHphtOpen, setIsHphtOpen] = useState(false);
@@ -148,6 +151,13 @@ export default function EditBumilPage() {
       const data = res.data;
       if (data.user_id) {
         setBumilUserId(data.user_id);
+      }
+      if (data.user?.username) {
+        setUsername(data.user.username);
+      } else if (data.username) {
+        setUsername(data.username);
+      } else {
+        setUsername(data.nik || '');
       }
       setFormData({
         name: data.name || '',
@@ -276,6 +286,7 @@ export default function EditBumilPage() {
       toast.success('Password berhasil diperbarui');
       setNewPassword('');
       setConfirmPassword('');
+      setIsModalOpen(false);
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Gagal mengubah password');
     } finally {
@@ -291,7 +302,7 @@ export default function EditBumilPage() {
         
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-6 md:px-8 md:py-6 rounded-3xl shadow-sm border border-pink-50">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 w-full sm:w-auto">
             <button onClick={() => router.push('/dashboard/admin/bumil')} className="h-10 w-10 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors shadow-sm shrink-0">
               <ArrowLeft className="w-5 h-5 text-gray-600" />
             </button>
@@ -300,6 +311,18 @@ export default function EditBumilPage() {
               <p className="text-xs text-gray-500 font-medium">Ibu Hamil: <span className="text-pink-500">{formData.name}</span></p>
             </div>
           </div>
+          
+          {/* Reset Password Button disebelah Header */}
+          {bumilUserId && (
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="w-full sm:w-auto px-4 py-2.5 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer shrink-0"
+            >
+              <Key className="w-3.5 h-3.5" />
+              <span>Reset Password</span>
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -337,8 +360,8 @@ export default function EditBumilPage() {
                     onChange={(e: any) => setFormData(prev => ({ ...prev, status: e.target.value }))}
                     className="w-full appearance-none pr-10 px-4 py-3.5 rounded-2xl text-gray-700 border border-gray-100 bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all font-bold"
                   >
-                    <option value="hamil">🤰 Sedang Hamil</option>
-                    <option value="melahirkan">👶 Sudah Melahirkan</option>
+                    <option value="hamil">Sedang Hamil</option>
+                    <option value="melahirkan">Sudah Melahirkan</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4">
                     <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -599,75 +622,131 @@ export default function EditBumilPage() {
           </button>
         </form>
 
-        {/* Change Password Card */}
-        {bumilUserId && (
-          <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-pink-50">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-pink-100 rounded-2xl flex items-center justify-center text-pink-500 shrink-0">
-                <Key className="w-6 h-6" />
+      </div>
+
+      {/* ── Reset Password Modal ── */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+          <div 
+            className="bg-white rounded-3xl shadow-2xl border border-pink-100/50 flex flex-col w-full max-w-md overflow-hidden relative animate-in fade-in zoom-in duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 bg-pink-50 rounded-xl flex items-center justify-center text-pink-500 shrink-0">
+                  <Key className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-gray-900">Reset Password</h2>
+                  <p className="text-[10px] text-gray-400 font-semibold mt-0.5">Perbarui kredensial akun Ibu Hamil</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">Ubah Password</h2>
-                <p className="text-xs md:text-sm text-gray-500 font-medium">Perbarui password login untuk akun ibu hamil ini.</p>
-              </div>
+              <button 
+                type="button"
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}
+                className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-900 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <form onSubmit={handlePasswordChange} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-700 uppercase tracking-wider block">Password Baru</label>
-                  <div className="relative">
-                    <input
-                      required
-                      type={showNewPass ? "text" : "password"}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pl-4 pr-10 py-3.5 rounded-2xl text-gray-750 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-sm font-semibold"
-                      placeholder="Min. 6 karakter"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPass(!showNewPass)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 animate-fade-in"
-                    >
-                      {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+            {/* Modal Body */}
+            <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
+              {/* Field: Username (Read Only) */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Username</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    readOnly
+                    value={username || '-'}
+                    className="w-full px-4 py-3 rounded-2xl text-gray-500 border border-gray-150 bg-gray-100/80 outline-none font-bold text-sm select-all cursor-not-allowed"
+                    title="Username tidak dapat diubah"
+                  />
+                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                    <User className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-black text-gray-700 uppercase tracking-wider block">Konfirmasi Password Baru</label>
-                  <div className="relative">
-                    <input
-                      required
-                      type={showConfirmPass ? "text" : "password"}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="w-full pl-4 pr-10 py-3.5 rounded-2xl text-gray-750 border border-gray-100 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-sm font-semibold"
-                      placeholder="Ketik ulang password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPass(!showConfirmPass)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 animate-fade-in"
-                    >
-                      {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
+                <span className="text-[9px] text-gray-400 font-medium leading-none block pl-1">
+                  Username ini dibuat saat pendaftaran awal dan bersifat unik.
+                </span>
+              </div>
+
+              {/* Field: Password Baru */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Password Baru</label>
+                <div className="relative">
+                  <input
+                    required
+                    type={showNewPass ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full pl-4 pr-10 py-3 rounded-2xl text-gray-700 border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-sm font-semibold"
+                    placeholder="Min. 6 karakter"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPass(!showNewPass)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  >
+                    {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
-              
-              <button
-                type="submit"
-                disabled={isUpdatingPassword}
-                className="w-full py-3.5 bg-gray-900 hover:bg-black text-white rounded-2xl font-bold transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg"
-              >
-                <Key className="w-4 h-4" /> {isUpdatingPassword ? 'Memperbarui...' : 'Ubah Password'}
-              </button>
+
+              {/* Field: Konfirmasi Password Baru */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Konfirmasi Password Baru</label>
+                <div className="relative">
+                  <input
+                    required
+                    type={showConfirmPass ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full pl-4 pr-10 py-3 rounded-2xl text-gray-700 border border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-2 focus:ring-pink-200 outline-none transition-all text-sm font-semibold"
+                    placeholder="Ketik ulang password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPass(!showConfirmPass)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                  >
+                    {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Footer / Actions */}
+              <div className="flex gap-3 pt-4 border-t border-gray-50 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setNewPassword('');
+                    setConfirmPassword('');
+                  }}
+                  className="flex-1 py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-600 rounded-2xl font-bold transition-all text-sm cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isUpdatingPassword}
+                  className="flex-1 py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-2xl font-bold transition-all disabled:opacity-50 text-sm flex items-center justify-center gap-1.5 shadow-md shadow-pink-100/50 cursor-pointer"
+                >
+                  <Key className="w-4 h-4" /> {isUpdatingPassword ? 'Memperbarui...' : 'Ubah Password'}
+                </button>
+              </div>
             </form>
           </div>
-        )}
+        </div>
+      )}
 
-      </div>
     </div>
   );
 }

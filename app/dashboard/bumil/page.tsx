@@ -484,7 +484,7 @@ export default function BumilDashboard() {
         ) : medicalHistory.length === 1 ? (
           <div className="bg-white p-6 md:p-10 rounded-[32px] md:rounded-[40px] shadow-sm border border-pink-100 flex flex-col md:flex-row items-center gap-6 md:gap-10 animate-in fade-in duration-300">
             <div className="md:w-1/3 flex flex-col items-center md:items-start text-center md:text-left space-y-4 shrink-0">
-              <div className="h-16 w-16 bg-gradient-to-tr from-pink-400 to-pink-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-pink-150 shrink-0">
+              <div className="h-16 w-16 bg-linear-to-tr from-pink-400 to-pink-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-pink-150 shrink-0">
                 <Heart className="w-8 h-8 fill-current animate-pulse" />
               </div>
               <div className="space-y-1.5">

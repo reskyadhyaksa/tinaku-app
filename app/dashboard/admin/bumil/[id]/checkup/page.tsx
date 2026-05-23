@@ -44,8 +44,23 @@ export default function BidanBumilCheckupPage() {
   // History sub-tab state inside Histori view
   const [historyTab, setHistoryTab] = useState<'midwife' | 'doctor'>('midwife');
 
-  // Automatically set active view and history tab based on user role
+  // Automatically set active view and history tab based on user role or query param
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      
+      if (tabParam === 'histori') {
+        setCurrentView('histori');
+        if (user?.role === 'dokter') {
+          setHistoryTab('doctor');
+        } else {
+          setHistoryTab('midwife');
+        }
+        return;
+      }
+    }
+
     if (user) {
       if (user.role === 'dokter') {
         setCurrentView('catat_dokter');

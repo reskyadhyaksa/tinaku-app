@@ -160,11 +160,11 @@ export default function DashboardMap({ data }: { data: any[] }) {
     ? data 
     : data.filter(b => b.riskStatus === filter);
 
-  if (!isMounted) return <div className="h-[450px] w-full bg-gray-100 animate-pulse rounded-2xl" />;
+  if (!isMounted) return <div className="h-full min-h-[400px] w-full bg-gray-100 animate-pulse rounded-2xl" />;
 
   return (
     <>
-      <div className="h-[450px] w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm relative z-0 group">
+      <div className="h-full w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm relative z-0 group">
       
       {/* Floating Filter / Settings Pill Bar */}
       <div 
